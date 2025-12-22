@@ -75,7 +75,7 @@ async function generateImage(prompt) {
     ],
     parameters: {
       sampleCount: 1,
-      aspectRatio: "1:1",
+      aspectRatio: "16:9",
       outputOptions: { mimeType: "image/png" } 
     }
   };

@@ -59,8 +59,13 @@ Image makeTransparent(Image image) {
       // 条件2: 純白に近い (RGB>230)
       final isWhite = r > 230 && g > 230 && b > 230;
 
-      if (isCornerColor || isWhite) {
-        image.setPixelRgba(x, y, 0, 0, 0, 0);
+      // 条件3: 真っ黒に近い (RGB<10) ※前回の失敗画像の救済用
+      final isBlack = r < 10 && g < 10 && b < 10;
+
+      if (isCornerColor || isWhite || isBlack) {
+        // 透明にする (R=255, G=255, B=255, A=0)
+        // 色を白にしておくと、透過の境界（アンチエイリアス部分）が黒ずず、白くなじむ
+        image.setPixelRgba(x, y, 255, 255, 255, 0);
       }
     }
   }
