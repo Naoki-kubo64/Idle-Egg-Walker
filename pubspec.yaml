@@ -48,6 +48,11 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/images/egg/
+    - assets/images/monsters/
+    - assets/images/backgrounds/
+    - assets/images/effects/
+    - assets/images/ui/
 
   # fonts:
   #   - family: PixelFont
