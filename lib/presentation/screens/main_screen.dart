@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../core/theme/app_theme.dart';
 import 'home_screen.dart';
 import 'health_screen.dart';
@@ -22,7 +22,14 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       extendBody: true, // コンテンツをバーの後ろまで伸ばす
       body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.backgroundGradient),
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/backgrounds/bg_pasture.png'),
+            fit: BoxFit.cover,
+            opacity: 0.8,
+          ),
+          gradient: AppTheme.backgroundGradient,
+        ),
         child: _pages[_currentIndex],
       ),
       bottomNavigationBar: _buildBottomNavBar(),

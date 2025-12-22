@@ -75,9 +75,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         key: _clickEffectKey,
         enableTouch: false, // キャラクタータップのみに反応させたい場合はfalse
         child: Container(
-          decoration: const BoxDecoration(
-            gradient: AppTheme.backgroundGradient,
-          ),
+          // 背景はMainScreenで設定するため、ここは透明
           child: SafeArea(
             child: Stack(
               children: [
