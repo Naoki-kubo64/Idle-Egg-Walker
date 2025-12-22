@@ -6,20 +6,33 @@
 
 ### 1. アセットの生成
 
+#### A. Web ツール等を使う場合
+
 `docs/ai_prompts.md` のプロンプトガイドを参考に、好みのドット絵生成 AI（Nano Banana など）で画像を生成してください。
 
-**必要な画像セット:**
+#### B. コマンドラインで生成する場合 (Nano Banana / Gemini API)
 
-1. **卵** (例: `egg_001.png`)
-2. **幼体** (例: `monster_001_baby.png`)
-3. **成長期** (例: `monster_001_teen.png`)
-4. **成体** (例: `monster_001_adult.png`)
+Zenn の記事を参考に実装されたスクリプトを使用します。
+
+**準備:**
+
+1. [Google AI Studio](https://aistudio.google.com/) で API キーを取得。
+2. 環境変数に設定: `$env:GEMINI_API_KEY="あなたのAPIキー"`
+
+**実行:**
+
+```bash
+# 例: tempフォルダにドラゴンの画像を生成
+node scripts/generate_image.mjs "cute baby dragon" "temp/dragon.png"
+```
+
+※ 自動的に「ドット絵、16-bit スタイル」の補正がかかります。
 
 ### 2. アセットの取り込み
 
 スクリプトを使用して、生成した画像をプロジェクトに取り込みます。
 
-1. 生成した画像を PC 上のどこか（ダウンロードフォルダなど）に保存。背景透過（透過 PNG）にしておくことを推奨します。
+1. 生成した画像を PC 上のどこか（ダウンロードフォルダや temp フォルダ）に用意。
 2. 以下のコマンドを実行：
    ```bash
    dart scripts/import_assets.dart
@@ -29,7 +42,12 @@
    - モンスター ID（例: 1）
    - タイプ（Baby, Teen, Adult, Egg）
 
-これで `assets/images` フォルダに自動的に配置され、アプリで表示されるようになります。
+**必要な画像セット:**
+
+1. **卵** (例: `egg_001.png`)
+2. **幼体** (例: `monster_001_baby.png`)
+3. **成長期** (例: `monster_001_teen.png`)
+4. **成体** (例: `monster_001_adult.png`)
 
 ### 3. アプリの確認
 
@@ -38,7 +56,6 @@ flutter run
 ```
 
 でアプリを起動し、アセットが反映されているか確認してください。
-最初は ID:1 のモンスターが登場します。
 
 ## 🧪 テスト・デバッグ機能
 
