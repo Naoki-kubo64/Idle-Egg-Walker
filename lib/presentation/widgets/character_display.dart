@@ -10,9 +10,9 @@ import '../../core/constants/gen_assets.dart';
 /// タップ時: ぷるんと弾むアニメーション
 class CharacterDisplay extends StatefulWidget {
   final Monster? monster;
-  final VoidCallback? onTap;
+  final void Function(TapDownDetails)? onTapDown; // 変更
 
-  const CharacterDisplay({super.key, this.monster, this.onTap});
+  const CharacterDisplay({super.key, this.monster, this.onTapDown});
 
   @override
   State<CharacterDisplay> createState() => _CharacterDisplayState();
@@ -77,16 +77,17 @@ class _CharacterDisplayState extends State<CharacterDisplay>
     super.dispose();
   }
 
-  void _handleTap() {
+  void _handleTapDown(TapDownDetails details) {
     // 連打対応: アニメーションをリセットして最初から再生
     _bounceController.forward(from: 0.0);
-    widget.onTap?.call();
+    widget.onTapDown?.call(details);
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _handleTap,
+      behavior: HitTestBehavior.translucent, // 透明部分も反応
+      onTapDown: _handleTapDown, // Downで即時反応
       child: AnimatedBuilder(
         animation: Listenable.merge([_breathingAnimation, _bounceController]),
         builder: (context, child) {

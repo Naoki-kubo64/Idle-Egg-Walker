@@ -24,7 +24,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _backgroundController;
   final GlobalKey<ClickEffectOverlayState> _clickEffectKey = GlobalKey();
-  
+
   @override
   void initState() {
     super.initState();
@@ -34,7 +34,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       duration: const Duration(seconds: 10),
     )..repeat();
   }
-  
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -69,7 +69,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget build(BuildContext context) {
     final playerStats = ref.watch(gameProvider);
     final currentMonster = playerStats.currentMonster;
-    
+
     return Scaffold(
       body: ClickEffectOverlay(
         key: _clickEffectKey,
@@ -83,15 +83,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               children: [
                 // 背景パーティクル
                 const ParticleEffect(),
-                
+
                 // メインコンテンツ
                 Column(
                   children: [
                     // ヘッダー
                     _buildHeader(playerStats),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // EXPバー
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -100,32 +100,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         maxExp: _getNextEvolutionExp(currentMonster),
                       ),
                     ),
-                    
+
                     const Spacer(),
-                    
+
                     // キャラクター表示（タップ可能）
                     // GestureDetectorでラップしてタップ位置を取得
-                    GestureDetector(
+                    // キャラクター表示（タップ可能）
+                    CharacterDisplay(
+                      monster: currentMonster,
                       onTapDown: (details) {
                         _onCharacterTap(details.globalPosition);
                       },
-                      child: CharacterDisplay(
-                        monster: currentMonster,
-                        onTap: () {
-                          // ここでのonTapは空にしてGestureDetectorで処理
-                          // だが、CharacterDisplay内のアニメーション発火には必要
-                        },
-                      ),
                     ),
-                    
+
                     const Spacer(),
-                    
+
                     // 統計パネル
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: StatsPanel(stats: playerStats),
                     ),
-                    
+
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -146,20 +141,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         children: [
           // タイトル
           Text(
-            'Egg Walker',
-            style: AppTheme.headlineMedium.copyWith(
-              foreground: Paint()
-                ..shader = AppTheme.primaryGradient.createShader(
-                  const Rect.fromLTWH(0, 0, 200, 40),
+                'Egg Walker',
+                style: AppTheme.headlineMedium.copyWith(
+                  foreground:
+                      Paint()
+                        ..shader = AppTheme.primaryGradient.createShader(
+                          const Rect.fromLTWH(0, 0, 200, 40),
+                        ),
                 ),
-            ),
-          )
-          .animate(onPlay: (controller) => controller.repeat())
-          .shimmer(
-            duration: 3.seconds,
-            color: AppTheme.secondaryColor.withValues(alpha: 0.3),
-          ),
-          
+              )
+              .animate(onPlay: (controller) => controller.repeat())
+              .shimmer(
+                duration: 3.seconds,
+                color: AppTheme.secondaryColor.withValues(alpha: 0.3),
+              ),
+
           // 右側アクションボタン
           Row(
             children: [
@@ -186,7 +182,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// 次の進化に必要なEXPを取得
   double _getNextEvolutionExp(Monster? monster) {
     if (monster == null) return GameConstants.expToHatch;
-    
+
     return switch (monster.stage) {
       EvolutionStage.egg => GameConstants.expToHatch,
       EvolutionStage.baby => GameConstants.expToTeen,
@@ -217,15 +213,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void _openSettings() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          '設定画面は準備中です',
-          style: AppTheme.bodyMedium,
-        ),
+        content: Text('設定画面は準備中です', style: AppTheme.bodyMedium),
         backgroundColor: AppTheme.surfaceDark,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
@@ -241,66 +232,64 @@ class _WelcomeBackDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.transparent,
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceDark,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: AppTheme.accentGold,
-            width: 2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.accentGold.withValues(alpha: 0.3),
-              blurRadius: 20,
-              spreadRadius: 5,
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'おかえりなさい！',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              '留守のあいだに...',
-              style: TextStyle(color: AppTheme.textSecondary),
-            ),
-            const SizedBox(height: 8),
-            TweenAnimationBuilder<int>(
-              tween: IntTween(begin: 0, end: expGained),
-              duration: const Duration(seconds: 2),
-              builder: (context, value, child) {
-                return Text(
-                  '+$value EXP',
-                  style: AppTheme.expStyle.copyWith(fontSize: 32),
-                );
-              },
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'を獲得しました！',
-              style: TextStyle(color: AppTheme.textSecondary),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      )
-      .animate()
-      .scale(duration: 300.ms, curve: Curves.easeOutBack)
-      .fadeIn(),
+      child:
+          Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceDark,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppTheme.accentGold, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.accentGold.withValues(alpha: 0.3),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'おかえりなさい！',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      '留守のあいだに...',
+                      style: TextStyle(color: AppTheme.textSecondary),
+                    ),
+                    const SizedBox(height: 8),
+                    TweenAnimationBuilder<int>(
+                      tween: IntTween(begin: 0, end: expGained),
+                      duration: const Duration(seconds: 2),
+                      builder: (context, value, child) {
+                        return Text(
+                          '+$value EXP',
+                          style: AppTheme.expStyle.copyWith(fontSize: 32),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'を獲得しました！',
+                      style: TextStyle(color: AppTheme.textSecondary),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+              )
+              .animate()
+              .scale(duration: 300.ms, curve: Curves.easeOutBack)
+              .fadeIn(),
     );
   }
 }
