@@ -72,6 +72,12 @@ class PlayerStats with _$PlayerStats {
     return friends.fold(0.0, (sum, monster) => sum + monster.expProductionRate);
   }
 
+  /// おともだちの総攻撃力（タップ時の加算値）
+  int get totalAttackPower {
+    if (friends.isEmpty) return 0;
+    return friends.fold(0, (sum, monster) => sum + monster.attackPower);
+  }
+
   /// 現在のモンスターが卵かどうか
   bool get hasEgg => currentMonster?.isEgg ?? false;
 

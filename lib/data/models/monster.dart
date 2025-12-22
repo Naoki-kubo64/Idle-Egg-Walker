@@ -9,10 +9,13 @@ part 'monster.g.dart';
 enum EvolutionStage {
   /// 卵状態
   egg,
+
   /// 幼体（孵化直後）
   baby,
+
   /// 成長中
   teen,
+
   /// 成体（完全体）
   adult,
 }
@@ -21,48 +24,52 @@ enum EvolutionStage {
 @freezed
 class Monster with _$Monster {
   const Monster._();
-  
+
   const factory Monster({
     /// モンスターの一意ID
     required int id,
-    
+
     /// モンスターの名前
     required String name,
-    
+
     /// 現在の進化段階
     @Default(EvolutionStage.egg) EvolutionStage stage,
-    
+
     /// このモンスターが1秒あたりに産出するEXP量
     @Default(0.0) double expProductionRate,
-    
+
+    /// 卵を攻撃する力（おともだち効果）
+    @Default(1) int attackPower,
+
     /// このモンスターのレアリティ（1-5、5が最もレア）
     @Default(1) int rarity,
-    
+
     /// 図鑑に登録済みかどうか
     @Default(false) bool isDiscovered,
-    
+
     /// 取得日時
     DateTime? obtainedAt,
-    
+
     /// フレーバーテキスト（図鑑用）
     @Default('') String description,
   }) = _Monster;
 
-  factory Monster.fromJson(Map<String, dynamic> json) => _$MonsterFromJson(json);
+  factory Monster.fromJson(Map<String, dynamic> json) =>
+      _$MonsterFromJson(json);
 
   /// 現在の進化段階に応じた画像パスを取得
   String get imagePath {
     if (stage == EvolutionStage.egg) {
       return GenAssets.egg;
     }
-    
+
     final monsterStage = switch (stage) {
       EvolutionStage.baby => MonsterStage.baby,
       EvolutionStage.teen => MonsterStage.teen,
       EvolutionStage.adult => MonsterStage.adult,
       _ => MonsterStage.baby,
     };
-    
+
     return GenAssets.monster(id, monsterStage);
   }
 

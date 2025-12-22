@@ -86,10 +86,13 @@ class GameNotifier extends Notifier<PlayerStats> {
 
   /// タップ時の処理
   void onTap() {
+    // 基本タップ力(1) + おともだちの総攻撃力
+    final damage = 1 + state.totalAttackPower;
+
     final newStats = state.copyWith(totalTaps: state.totalTaps + 1);
     state = newStats;
 
-    _addExp(GameConstants.expPerTap);
+    _addExp(damage.toDouble());
   }
 
   /// 歩数を追加（ヘルスパッケージから呼ばれる）
@@ -137,7 +140,9 @@ class GameNotifier extends Notifier<PlayerStats> {
   /// 進化閾値を取得
   double? _getEvolutionThreshold(EvolutionStage stage) {
     return switch (stage) {
-      EvolutionStage.egg => GameConstants.expToHatch,
+      // 卵のHPは、おともだちが増えるごとに増加（難易度アップ）
+      EvolutionStage.egg =>
+        GameConstants.expToHatch + (state.friends.length * 100).toDouble(),
       EvolutionStage.baby => GameConstants.expToTeen,
       EvolutionStage.teen => GameConstants.expToAdult,
       EvolutionStage.adult => null, // 最終進化
@@ -198,6 +203,7 @@ class GameNotifier extends Notifier<PlayerStats> {
       stage: EvolutionStage.baby,
       rarity: rarity,
       expProductionRate: _calculateExpRate(EvolutionStage.baby, rarity),
+      attackPower: _calculateAttackPower(EvolutionStage.baby, rarity), // 攻撃力も設定
       isDiscovered: true,
       obtainedAt: DateTime.now(),
       description: '奇跡的に生まれた、${AppTheme.getRarityName(rarity)}ランクのモンスター。',
@@ -240,6 +246,17 @@ class GameNotifier extends Notifier<PlayerStats> {
     final rarityMultiplier = 1.0 + (rarity - 1) * 0.5;
 
     return baseRate * rarityMultiplier;
+  }
+
+  /// 進化段階とレアリティに応じた攻撃力を計算
+  int _calculateAttackPower(EvolutionStage stage, int rarity) {
+    final basePower = switch (stage) {
+      EvolutionStage.egg => 0,
+      EvolutionStage.baby => 1,
+      EvolutionStage.teen => 2,
+      EvolutionStage.adult => 5,
+    };
+    return basePower * rarity;
   }
 
   /// おともだち追加完了処理

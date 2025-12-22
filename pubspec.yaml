@@ -32,6 +32,9 @@ dependencies:
   # UI
   google_fonts: ^6.2.1
 
+  # Image Processing
+  image: ^4.1.7
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

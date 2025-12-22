@@ -71,6 +71,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final currentMonster = playerStats.currentMonster;
 
     return Scaffold(
+      backgroundColor: Colors.transparent, // 背景画像を透過させる
       body: ClickEffectOverlay(
         key: _clickEffectKey,
         enableTouch: false, // キャラクタータップのみに反応させたい場合はfalse
