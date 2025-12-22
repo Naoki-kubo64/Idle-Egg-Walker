@@ -10,7 +10,9 @@ import '../widgets/exp_bar.dart';
 import '../widgets/stats_panel.dart';
 import '../widgets/particle_effect.dart';
 import '../widgets/click_effect_overlay.dart';
+import 'dart:math' as math;
 import 'collection_screen.dart';
+import '../widgets/friend_monster.dart';
 
 /// メインホーム画面
 class HomeScreen extends ConsumerStatefulWidget {
@@ -100,19 +102,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ),
                     ),
 
-                    const Spacer(),
+                    // キャラクタと友達表示エリア
+                    Expanded(
+                      child: Stack(
+                        alignment: Alignment.center,
+                        clipBehavior: Clip.none,
+                        children: [
+                          // おともだち（背後のモンスターたち）
+                          ...List.generate(playerStats.friends.length, (index) {
+                            final friend = playerStats.friends[index];
+                            final total = playerStats.friends.length;
+                            final radius = 130.0; // 中心からの距離
+                            // 円形配置（上側を空けて、U字型に配置するイメージ、または全周）
+                            // ここではシンプルに全周配置し、少し回転させる
+                            final angle =
+                                (2 * math.pi * index / math.max(1, total)) -
+                                (math.pi / 2);
 
-                    // キャラクター表示（タップ可能）
-                    // GestureDetectorでラップしてタップ位置を取得
-                    // キャラクター表示（タップ可能）
-                    CharacterDisplay(
-                      monster: currentMonster,
-                      onTapDown: (details) {
-                        _onCharacterTap(details.globalPosition);
-                      },
+                            return Transform.translate(
+                              offset: Offset(
+                                radius * math.cos(angle),
+                                radius * math.sin(angle) + 20, // 少し下にずらす
+                              ),
+                              child: FriendMonster(
+                                monster: friend,
+                                onTap: () {
+                                  // おともだちをタップした時の反応（必要なら）
+                                },
+                              ),
+                            );
+                          }),
+
+                          // メインキャラクター（卵など）
+                          CharacterDisplay(
+                            monster: currentMonster,
+                            onTapDown: (details) {
+                              _onCharacterTap(details.globalPosition);
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-
-                    const Spacer(),
 
                     // 統計パネル
                     Padding(
