@@ -49,7 +49,7 @@ flutter:
   assets:
     - assets/images/
 
-  fonts:
-    - family: PixelFont
-      fonts:
-        - asset: assets/fonts/DotGothic16-Regular.ttf
+  # fonts:
+  #   - family: PixelFont
+  #     fonts:
+  #       - asset: assets/fonts/DotGothic16-Regular.ttf
