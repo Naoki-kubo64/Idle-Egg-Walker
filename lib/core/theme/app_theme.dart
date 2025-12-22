@@ -5,37 +5,49 @@ import 'package:google_fonts/google_fonts.dart';
 class AppTheme {
   AppTheme._();
 
-  // === カラーパレット（ダークテーマベース） ===
-  static const Color primaryColor = Color(0xFF7C4DFF); // 紫色（メイン）
-  static const Color secondaryColor = Color(0xFF00E5FF); // シアン（アクセント）
-  static const Color accentGold = Color(0xFFFFD700); // ゴールド（EXP）
-  static const Color accentPink = Color(0xFFFF6B9D); // ピンク（レア度）
+  // === カラーパレット（Warm Pixel Theme） ===
+  static const Color primaryColor = Color(0xFF88C946); // 若草色（メイン）
+  static const Color secondaryColor = Color(0xFFFFD166); // タンポポ色（アクセント）
+  static const Color accentGold = Color(0xFFFFB627); // 蜂蜜色（EXP）
+  static const Color accentPink = Color(0xFFFF8B94); // 桃色（ハートなど）
 
-  static const Color backgroundDark = Color(0xFF0D1117); // 深い背景
-  static const Color surfaceDark = Color(0xFF161B22); // カード背景
-  static const Color surfaceLight = Color(0xFF21262D); // 軽い表面
+  static const Color backgroundLight = Color(0xFFF0F7E6); // 非常に薄い緑（昼）
+  static const Color surfaceCream = Color(0xFFFFFDF5); // クリーム色（カード）
+  static const Color surfaceWood = Color(0xFFD4A373); // 木目調（濃いUI）
 
-  static const Color textPrimary = Color(0xFFE6EDF3); // メインテキスト
-  static const Color textSecondary = Color(0xFF8B949E); // サブテキスト
-  static const Color textMuted = Color(0xFF484F58); // 薄いテキスト
+  static const Color textPrimary = Color(0xFF4A4036); // こげ茶（メインテキスト）
+  static const Color textSecondary = Color(0xFF8C7B6B); // 薄茶（サブテキスト）
+  static const Color textMuted = Color(0xFFB5A698); // グレーベージュ
+
+  // === 互換性定義（旧カラー名へのエイリアス） ===
+  static const Color backgroundDark = backgroundLight;
+  static const Color surfaceDark = surfaceCream;
+  static const Color surfaceLight = surfaceWood;
 
   // === グラデーション ===
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [primaryColor, Color(0xFF536DFE)],
+    colors: [Color(0xFFA6E060), Color(0xFF7CB342)],
   );
 
   static const LinearGradient expGradient = LinearGradient(
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
-    colors: [accentGold, Color(0xFFFFAB00)],
+    colors: [Color(0xFFFFD54F), Color(0xFFFFCA28)],
   );
 
+  // 空と大地のグラデーション
   static const LinearGradient backgroundGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [Color(0xFF1A1A2E), Color(0xFF16213E), Color(0xFF0F0F23)],
+    colors: [
+      Color(0xFF87CEEB), // 空色
+      Color(0xFFE0F7FA), // 薄い雲
+      Color(0xFFF1F8E9), // 地平線付近
+      Color(0xFFDCEDC8), // 草原
+    ],
+    stops: [0.0, 0.4, 0.6, 1.0],
   );
 
   // === テキストスタイル（ピクセルフォント） ===
@@ -80,25 +92,52 @@ class AppTheme {
   );
 
   // === ダークテーマ ===
-  static ThemeData get darkTheme => ThemeData(
+  // === メインテーマ ===
+  static ThemeData get warmTheme => ThemeData(
     useMaterial3: true,
-    brightness: Brightness.dark,
-    scaffoldBackgroundColor: backgroundDark,
+    brightness: Brightness.light,
+    scaffoldBackgroundColor: backgroundLight,
+    fontFamily: GoogleFonts.dotGothic16().fontFamily,
 
-    colorScheme: const ColorScheme.dark(
+    colorScheme: const ColorScheme.light(
       primary: primaryColor,
       secondary: secondaryColor,
-      surface: surfaceDark,
-      error: Color(0xFFFF5252),
+      surface: surfaceCream,
+      onPrimary: Colors.white,
+      onSecondary: textPrimary,
+      onSurface: textPrimary,
     ),
 
-    textTheme: TextTheme(
-      headlineLarge: headlineLarge,
-      headlineMedium: headlineMedium,
-      titleLarge: titleLarge,
-      bodyLarge: bodyLarge,
-      bodyMedium: bodyMedium,
-      labelLarge: labelLarge,
+    // カードデザイン（ドット絵風の枠線）
+    cardTheme: CardThemeData(
+      color: surfaceCream,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Color(0xFFD7CCC8), width: 3),
+      ),
+    ),
+
+    // ボタンデザイン（立体的）
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(
+            color: Color(0xFF558B2F),
+            width: 0,
+            style: BorderStyle.none,
+          ),
+        ),
+        textStyle: labelLarge,
+      ).copyWith(
+        shadowColor: WidgetStateProperty.all(const Color(0xFF558B2F)),
+        elevation: WidgetStateProperty.all(4),
+      ),
     ),
 
     appBarTheme: AppBarTheme(
@@ -106,24 +145,11 @@ class AppTheme {
       elevation: 0,
       centerTitle: true,
       titleTextStyle: headlineMedium,
-    ),
-
-    cardTheme: CardThemeData(
-      color: surfaceDark,
-      elevation: 8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-    ),
-
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: primaryColor,
-        foregroundColor: textPrimary,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        textStyle: labelLarge,
-      ),
+      iconTheme: const IconThemeData(color: textPrimary),
     ),
   );
+
+  static ThemeData get darkTheme => warmTheme; // 互換性のため
 
   // === レアリティカラー ===
   static Color getRarityColor(int rarity) {
