@@ -1,0 +1,55 @@
+name: egg_walker
+description: "歩数連動型の放置育成ゲーム - 卵を温めてモンスターを孵化させよう！"
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.0-79.0.dev
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Data Model
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+
+  # Animation
+  flutter_animate: ^4.5.2
+
+  # Storage
+  shared_preferences: ^2.3.4
+
+  # Health Integration
+  health: ^11.1.0
+  permission_handler: ^11.3.1
+
+  # UI
+  google_fonts: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+  # Code Generation
+  build_runner: ^2.4.14
+  freezed: ^2.5.7
+  json_serializable: ^6.9.0
+  riverpod_generator: ^2.6.3
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+
+  fonts:
+    - family: PixelFont
+      fonts:
+        - asset: assets/fonts/DotGothic16-Regular.ttf
