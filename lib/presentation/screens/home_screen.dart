@@ -9,6 +9,8 @@ import '../widgets/character_display.dart';
 import '../widgets/exp_bar.dart';
 import '../widgets/stats_panel.dart';
 import '../widgets/particle_effect.dart';
+import '../widgets/click_effect_overlay.dart';
+import 'collection_screen.dart';
 
 /// メインホーム画面
 class HomeScreen extends ConsumerStatefulWidget {
@@ -19,12 +21,14 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _backgroundController;
+  final GlobalKey<ClickEffectOverlayState> _clickEffectKey = GlobalKey();
   
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _backgroundController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 10),
@@ -33,8 +37,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _backgroundController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkBackgroundProgress();
+    }
+  }
+
+  /// バックグラウンド復帰時の処理
+  Future<void> _checkBackgroundProgress() async {
+    final expGained = await ref.read(gameProvider.notifier).onAppResume();
+    if (expGained > 0 && mounted) {
+      _showWelcomeBackDialog(expGained);
+    }
+  }
+
+  /// おかえりダイアログ表示
+  void _showWelcomeBackDialog(int expGained) {
+    showDialog(
+      context: context,
+      builder: (context) => _WelcomeBackDialog(expGained: expGained),
+    );
   }
 
   @override
@@ -43,53 +71,66 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final currentMonster = playerStats.currentMonster;
     
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.backgroundGradient,
-        ),
-        child: SafeArea(
-          child: Stack(
-            children: [
-              // 背景パーティクル
-              const ParticleEffect(),
-              
-              // メインコンテンツ
-              Column(
-                children: [
-                  // ヘッダー
-                  _buildHeader(playerStats),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // EXPバー
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: ExpBar(
-                      currentExp: playerStats.currentExp,
-                      maxExp: _getNextEvolutionExp(currentMonster),
+      body: ClickEffectOverlay(
+        key: _clickEffectKey,
+        enableTouch: false, // キャラクタータップのみに反応させたい場合はfalse
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: AppTheme.backgroundGradient,
+          ),
+          child: SafeArea(
+            child: Stack(
+              children: [
+                // 背景パーティクル
+                const ParticleEffect(),
+                
+                // メインコンテンツ
+                Column(
+                  children: [
+                    // ヘッダー
+                    _buildHeader(playerStats),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // EXPバー
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: ExpBar(
+                        currentExp: playerStats.currentExp,
+                        maxExp: _getNextEvolutionExp(currentMonster),
+                      ),
                     ),
-                  ),
-                  
-                  const Spacer(),
-                  
-                  // キャラクター表示（タップ可能）
-                  CharacterDisplay(
-                    monster: currentMonster,
-                    onTap: () => _onCharacterTap(),
-                  ),
-                  
-                  const Spacer(),
-                  
-                  // 統計パネル
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: StatsPanel(stats: playerStats),
-                  ),
-                  
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ],
+                    
+                    const Spacer(),
+                    
+                    // キャラクター表示（タップ可能）
+                    // GestureDetectorでラップしてタップ位置を取得
+                    GestureDetector(
+                      onTapDown: (details) {
+                        _onCharacterTap(details.globalPosition);
+                      },
+                      child: CharacterDisplay(
+                        monster: currentMonster,
+                        onTap: () {
+                          // ここでのonTapは空にしてGestureDetectorで処理
+                          // だが、CharacterDisplay内のアニメーション発火には必要
+                        },
+                      ),
+                    ),
+                    
+                    const Spacer(),
+                    
+                    // 統計パネル
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: StatsPanel(stats: playerStats),
+                    ),
+                    
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -119,11 +160,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             color: AppTheme.secondaryColor.withValues(alpha: 0.3),
           ),
           
-          // 設定ボタン
-          IconButton(
-            onPressed: _openSettings,
-            icon: const Icon(Icons.settings_rounded),
-            color: AppTheme.textSecondary,
+          // 右側アクションボタン
+          Row(
+            children: [
+              // 図鑑ボタン
+              IconButton(
+                onPressed: _openCollection,
+                icon: const Icon(Icons.menu_book_rounded),
+                color: AppTheme.accentGold,
+                tooltip: '図鑑',
+              ),
+              // 設定ボタン
+              IconButton(
+                onPressed: _openSettings,
+                icon: const Icon(Icons.settings_rounded),
+                color: AppTheme.textSecondary,
+              ),
+            ],
           ),
         ],
       ),
@@ -143,13 +196,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   /// キャラクタータップ時の処理
-  void _onCharacterTap() {
+  void _onCharacterTap(Offset globalPosition) {
     ref.read(gameProvider.notifier).onTap();
+    // クリックエフェクトを表示
+    _clickEffectKey.currentState?.addEffect(
+      globalPosition,
+      exp: GameConstants.expPerTap.toInt(),
+    );
+  }
+
+  /// 図鑑画面を開く
+  void _openCollection() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CollectionScreen()),
+    );
   }
 
   /// 設定画面を開く
   void _openSettings() {
-    // TODO: 設定画面の実装
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -162,6 +227,80 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           borderRadius: BorderRadius.circular(8),
         ),
       ),
+    );
+  }
+}
+
+/// おかえりダイアログ
+class _WelcomeBackDialog extends StatelessWidget {
+  final int expGained;
+
+  const _WelcomeBackDialog({required this.expGained});
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceDark,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppTheme.accentGold,
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.accentGold.withValues(alpha: 0.3),
+              blurRadius: 20,
+              spreadRadius: 5,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'おかえりなさい！',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '留守のあいだに...',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 8),
+            TweenAnimationBuilder<int>(
+              tween: IntTween(begin: 0, end: expGained),
+              duration: const Duration(seconds: 2),
+              builder: (context, value, child) {
+                return Text(
+                  '+$value EXP',
+                  style: AppTheme.expStyle.copyWith(fontSize: 32),
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'を獲得しました！',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      )
+      .animate()
+      .scale(duration: 300.ms, curve: Curves.easeOutBack)
+      .fadeIn(),
     );
   }
 }

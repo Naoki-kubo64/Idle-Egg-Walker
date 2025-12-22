@@ -3,12 +3,15 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/monster.dart';
 import '../../data/models/player_stats.dart';
+import '../../data/repositories/health_repository.dart';
 import '../../core/constants/game_constants.dart';
+import '../../core/constants/gen_assets.dart';
 
 /// ゲーム状態を管理するNotifier
 class GameNotifier extends Notifier<PlayerStats> {
   Timer? _autoExpTimer;
   final Random _random = Random();
+  final HealthRepository _healthRepository = HealthRepository();
   
   @override
   PlayerStats build() {
@@ -23,11 +26,40 @@ class GameNotifier extends Notifier<PlayerStats> {
     // 自動EXP獲得タイマーを開始
     _startAutoExpTimer();
     
+    // ヘルスケア連携初期化（非同期で実行）
+    _initHealth();
+    
     return PlayerStats(
       currentMonster: initialEgg,
       gameStartedAt: DateTime.now(),
       lastPlayedAt: DateTime.now(),
+      // 開発用の初期データ（図鑑テスト用）
+      discoveredMonsterIds: [], 
     );
+  }
+
+  Future<void> _initHealth() async {
+    // 権限リクエスト
+    await _healthRepository.requestPermissions();
+    // 起動時の同期
+    await syncSteps();
+  }
+
+  /// アプリ復帰時に呼び出されるメソッド
+  Future<int> onAppResume() async {
+    return await syncSteps();
+  }
+
+  /// 歩数を同期し、変換したExpを加算する
+  /// 加算されたExp量を返す
+  Future<int> syncSteps() async {
+    final steps = await _healthRepository.getStepsSinceLastSync();
+    if (steps > 0) {
+      addSteps(steps);
+      final exp = (steps * GameConstants.expPerStep).toInt();
+      return exp; // UI側でダイアログ表示に使用
+    }
+    return 0;
   }
 
   /// 自動EXP獲得タイマーを開始
@@ -152,8 +184,8 @@ class GameNotifier extends Notifier<PlayerStats> {
 
   /// 卵を孵化させてランダムなモンスターを生成
   Monster _hatchEgg() {
-    // ランダムなモンスターIDを選択（1-50の範囲で）
-    final monsterId = _random.nextInt(50) + 1;
+    // ランダムなモンスターIDを選択（1-totalMonstersの範囲で）
+    final monsterId = _random.nextInt(GenAssets.totalMonsters) + 1;
     
     // レアリティを決定（加重ランダム）
     final rarity = _determineRarity();
@@ -169,7 +201,7 @@ class GameNotifier extends Notifier<PlayerStats> {
       expProductionRate: _calculateExpRate(EvolutionStage.baby, rarity),
       isDiscovered: true,
       obtainedAt: DateTime.now(),
-      description: 'ふわふわしていて、とてもかわいい。',
+      description: '奇跡的に生まれた、${AppTheme.getRarityName(rarity)}ランクのモンスター。',
     );
   }
 
@@ -187,11 +219,11 @@ class GameNotifier extends Notifier<PlayerStats> {
   /// モンスター名を生成
   String _generateMonsterName(int id, int rarity) {
     // 仮の名前生成（後で本格的なデータに置き換え）
-    final prefixes = ['もこ', 'ふわ', 'ぷに', 'きら', 'ほわ'];
-    final suffixes = ['たん', 'ちゃん', 'まる', 'ぴょん', 'りん'];
+    final prefixes = ['もこ', 'ふわ', 'ぷに', 'きら', 'ほわ', 'ドラ', 'ピコ', 'メカ'];
+    final suffixes = ['たん', 'ちゃん', 'まる', 'ぴょん', 'りん', 'ゴン', 'モン', 'エース'];
     
     final prefix = prefixes[id % prefixes.length];
-    final suffix = suffixes[rarity - 1];
+    final suffix = suffixes[rarity - 1]; // レアリティが高いほど強そうな接尾辞にしても良い
     
     return '$prefix$suffix';
   }
@@ -205,7 +237,7 @@ class GameNotifier extends Notifier<PlayerStats> {
       EvolutionStage.adult => 1.0,
     };
     
-    // レアリティボーナス（レアリティ1=1倍、レアリティ5=3倍）
+    // レアリティボーナス
     final rarityMultiplier = 1.0 + (rarity - 1) * 0.5;
     
     return baseRate * rarityMultiplier;
@@ -232,7 +264,7 @@ class GameNotifier extends Notifier<PlayerStats> {
 
   /// 新しい卵を生成
   Monster _createNewEgg() {
-    return Monster(
+    return const Monster(
       id: 0, // 卵は特別なID
       name: 'たまご',
       stage: EvolutionStage.egg,
@@ -246,6 +278,7 @@ class GameNotifier extends Notifier<PlayerStats> {
       currentMonster: _createNewEgg(),
       gameStartedAt: DateTime.now(),
       lastPlayedAt: DateTime.now(),
+      discoveredMonsterIds: [],
     );
     _startAutoExpTimer();
   }
@@ -253,23 +286,3 @@ class GameNotifier extends Notifier<PlayerStats> {
 
 /// ゲーム状態のプロバイダー
 final gameProvider = NotifierProvider<GameNotifier, PlayerStats>(GameNotifier.new);
-
-/// 現在のモンスターのプロバイダー（便利な選択プロバイダー）
-final currentMonsterProvider = Provider<Monster?>((ref) {
-  return ref.watch(gameProvider.select((state) => state.currentMonster));
-});
-
-/// 現在のEXPのプロバイダー
-final currentExpProvider = Provider<double>((ref) {
-  return ref.watch(gameProvider.select((state) => state.currentExp));
-});
-
-/// おともだち数のプロバイダー
-final friendCountProvider = Provider<int>((ref) {
-  return ref.watch(gameProvider.select((state) => state.friendCount));
-});
-
-/// 自動EXP/秒のプロバイダー
-final autoExpPerSecondProvider = Provider<double>((ref) {
-  return ref.watch(gameProvider.select((state) => state.autoExpPerSecond));
-});
