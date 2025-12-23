@@ -27,8 +27,16 @@ class FriendMonster extends StatelessWidget {
                 child: Image.asset(
                   monster.imagePath,
                   fit: BoxFit.contain, // または scaleDown
-                  errorBuilder:
-                      (_, __, ___) => const Icon(Icons.help_outline, size: 30),
+                  errorBuilder: (_, __, ___) {
+                    final emoji = switch (monster.stage) {
+                      EvolutionStage.adult => '🐲',
+                      EvolutionStage.teen => '🦖',
+                      _ => '🐣',
+                    };
+                    return Center(
+                      child: Text(emoji, style: const TextStyle(fontSize: 30)),
+                    );
+                  },
                 ),
               )
               .animate(onPlay: (controller) => controller.repeat(reverse: true))

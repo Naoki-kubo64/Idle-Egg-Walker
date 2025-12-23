@@ -200,14 +200,44 @@ class GameNotifier extends Notifier<PlayerStats> {
 
   /// モンスター名を生成
   String _generateMonsterName(int id, int rarity) {
-    // 仮の名前生成（後で本格的なデータに置き換え）
-    final prefixes = ['もこ', 'ふわ', 'ぷに', 'きら', 'ほわ', 'ドラ', 'ピコ', 'メカ'];
-    final suffixes = ['たん', 'ちゃん', 'まる', 'ぴょん', 'りん', 'ゴン', 'モン', 'エース'];
+    final species = _getSpeciesName(id);
+    final prefix = _getRankPrefix(rarity);
+    return '$prefix$species';
+  }
 
-    final prefix = prefixes[id % prefixes.length];
-    final suffix = suffixes[rarity - 1]; // レアリティが高いほど強そうな接尾辞にしても良い
+  /// IDに対応する種族名を取得
+  String _getSpeciesName(int id) {
+    return switch (id) {
+      1 => 'ドラゴン',
+      2 => 'スライム',
+      3 => 'ゴースト',
+      4 => 'ゴーレム',
+      5 => 'フェアリー',
+      6 => 'ウルフ',
+      7 => 'ロボ',
+      8 => 'プラント',
+      9 => 'バット',
+      10 => 'ペンギン',
+      11 => 'ミミック',
+      12 => 'UFO',
+      _ => '謎の未確認生物',
+    };
+  }
 
-    return '$prefix$suffix';
+  /// レアリティに応じた接頭辞（二つ名）
+  String _getRankPrefix(int rarity) {
+    // 毎回ランダムだと名前が変わってしまうので、今回はランダム要素は排除し、
+    // レアリティごとの固定称号にするか、あるいは生成時にランダムで決める今の仕様を維持するなら
+    // 配列からランダムにとる。
+    // ここではシンプルにレアリティに応じた形容詞をランダムに返す。
+    final prefixes = switch (rarity) {
+      5 => ['伝説の', '神話級', '最強の', '究極', '光り輝く'], // LG
+      4 => ['いにしえの', '王家の', '真・', '超', 'マスター'], // UR
+      3 => ['強い', '大きな', 'すごい', '怒りの', '熟練'], // SR
+      2 => ['元気な', '普通の', 'ちょっといい', '野生の'], // R
+      _ => ['はじめての', 'よわい', 'そこらへんの', 'ちいさな', ''], // N
+    };
+    return prefixes[_random.nextInt(prefixes.length)];
   }
 
   /// 進化段階とレアリティに応じたEXP産出量を計算
