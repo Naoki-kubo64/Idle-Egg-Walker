@@ -50,12 +50,24 @@ class GameNotifier extends Notifier<PlayerStats> {
   }
 
   /// アプリ復帰時に呼び出されるメソッド
-  /// 獲得した総EXP（ダメージ）を返す
-  Future<double> onAppResume() async {
-    final damageFromSteps = await syncSteps();
-    final damageFromTime = _calculateOfflineDamage();
+  /// 獲得した歩数とEXPの詳細を返す
+  Future<Map<String, num>> syncAndGetDetails() async {
+    final steps = await _healthRepository.getStepsSinceLastSync();
 
-    return damageFromSteps + damageFromTime;
+    double stepExp = 0.0;
+    if (steps > 0) {
+      stepExp = addSteps(steps);
+    }
+
+    final timeExp = _calculateOfflineDamage();
+
+    return {'steps': steps, 'exp': stepExp + timeExp};
+  }
+
+  /// onAppResumeは後方互換性のため残すが、syncAndGetDetailsを使う推奨
+  Future<double> onAppResume() async {
+    final result = await syncAndGetDetails();
+    return (result['exp'] as num).toDouble();
   }
 
   /// 歩数を同期し、変換したExpを加算する
@@ -63,8 +75,7 @@ class GameNotifier extends Notifier<PlayerStats> {
   Future<double> syncSteps() async {
     final steps = await _healthRepository.getStepsSinceLastSync();
     if (steps > 0) {
-      addSteps(steps);
-      return steps * GameConstants.expPerStep;
+      return addSteps(steps);
     }
     return 0.0;
   }
@@ -128,8 +139,9 @@ class GameNotifier extends Notifier<PlayerStats> {
   }
 
   /// 歩数を追加（おともだち育成 -> 卵割りパワーに変更）
-  void addSteps(int steps) {
-    if (steps <= 0) return;
+  /// 獲得したEXPを返す
+  double addSteps(int steps) {
+    if (steps <= 0) return 0.0;
 
     // 歩数ブースト確認 (現在時刻が終了時刻より前なら有効)
     final now = DateTime.now();
@@ -149,6 +161,8 @@ class GameNotifier extends Notifier<PlayerStats> {
 
     // 歩数も卵へのダメージとして扱う
     _addDamageToEgg(expFromSteps);
+
+    return expFromSteps;
   }
 
   // === アップグレード関連 ===

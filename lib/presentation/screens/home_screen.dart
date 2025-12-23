@@ -16,6 +16,7 @@ import 'collection_screen.dart';
 import 'upgrade_screen.dart';
 import 'health_screen.dart';
 import '../widgets/friend_monster.dart';
+import '../widgets/welcome_dialog.dart'; // 追加
 
 /// メインホーム画面
 class HomeScreen extends ConsumerStatefulWidget {
@@ -56,17 +57,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   /// バックグラウンド復帰時の処理
   Future<void> _checkBackgroundProgress() async {
-    final expGained = await ref.read(gameProvider.notifier).onAppResume();
-    if (expGained > 0 && mounted) {
-      _showWelcomeBackDialog(expGained.toInt());
+    // 詳細（歩数とEXP）を取得
+    final result = await ref.read(gameProvider.notifier).syncAndGetDetails();
+    final steps = (result['steps'] as num).toInt();
+    final exp = (result['exp'] as num).toInt();
+
+    if ((steps > 0 || exp > 0) && mounted) {
+      _showWelcomeBackDialog(steps, exp);
     }
   }
 
   /// おかえりダイアログ表示
-  void _showWelcomeBackDialog(int expGained) {
+  void _showWelcomeBackDialog(int steps, int exp) {
     showDialog(
       context: context,
-      builder: (context) => _WelcomeBackDialog(expGained: expGained),
+      builder: (context) => WelcomeBackDialog(steps: steps, exp: exp),
     );
   }
 

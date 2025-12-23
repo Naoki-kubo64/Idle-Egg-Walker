@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'presentation/screens/main_screen.dart';
 import 'core/theme/app_theme.dart';
-import 'providers/game_notifier.dart';
 import 'services/sound_manager.dart'; // 追加
 import 'services/notification_service.dart'; // 追加
 
@@ -15,7 +14,7 @@ void main() async {
   await NotificationService().requestPermissions();
 
   await SoundManager().init();
-  SoundManager().playBgm();
+  // SoundManager().playBgm(); // Webの自動再生ポリシーによりここでは再生せず、初回タップ時に再生する
 
   runApp(const ProviderScope(child: EggWalkerApp()));
 }
@@ -27,51 +26,7 @@ class EggWalkerApp extends ConsumerStatefulWidget {
   ConsumerState<EggWalkerApp> createState() => _EggWalkerAppState();
 }
 
-class _EggWalkerAppState extends ConsumerState<EggWalkerApp>
-    with WidgetsBindingObserver {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      // バックグラウンド復帰時に歩数同期
-      _syncSteps();
-    }
-  }
-
-  Future<void> _syncSteps() async {
-    // GameNotifierのonAppResumeを呼び出し、獲得EXPがあれば通知
-    final expGained = await ref.read(gameProvider.notifier).onAppResume();
-
-    if (expGained > 0 && mounted) {
-      // 少し遅延させてからダイアログを表示（画面描画完了待ち）
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _showWelcomeBackDialog(expGained.toInt());
-      });
-    }
-  }
-
-  void _showWelcomeBackDialog(int exp) {
-    // 現在のContextを取得できないため、少し強引だが
-    // 実際にはNavigatorKeyを使うか、HomeScreen側で監視するのがベター
-    // ここでは簡略化のため、printのみとしておくか、
-    // あるいはGlobalKey<NavigatorState>を使う実装に修正する。
-    // 今回はHomeScreen側でライフサイクル監視をした方が綺麗なので、
-    // 本来はそちらに移すべきだが、グローバルな監視としてここに残し、
-    // 通知はコンソールへ出力するのみとする（実装フェーズ2でHomeScreenへ移動）
-    debugPrint('Welcome back! Gained $exp EXP');
-  }
-
+class _EggWalkerAppState extends ConsumerState<EggWalkerApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

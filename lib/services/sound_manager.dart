@@ -46,18 +46,28 @@ class SoundManager {
     }
   }
 
+  /// ユーザーインタラクション時にBGM再生を確認・開始
+  void _ensureBgmPlaying() {
+    if (!_isBgmPlaying) {
+      playBgm();
+    }
+  }
+
   /// タップ音再生
   Future<void> playTap() async {
+    _ensureBgmPlaying(); // ユーザー操作時なのでBGM開始チャンス
     await _playSe('audio/se_tap.mp3');
   }
 
   /// 決定/購入音再生
   Future<void> playDecide() async {
+    _ensureBgmPlaying();
     await _playSe('audio/se_decide.mp3');
   }
 
   /// 孵化/進化音再生
   Future<void> playFanfare() async {
+    _ensureBgmPlaying();
     await _playSe('audio/se_fanfare.mp3');
   }
 
