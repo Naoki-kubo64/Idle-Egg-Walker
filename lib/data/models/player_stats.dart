@@ -64,8 +64,11 @@ class PlayerStats with _$PlayerStats {
     /// 攻撃力アップグレードレベル（Lv1 = 1.0倍, Lv2 = 1.1倍...）
     @Default(1) int attackUpgradeLevel,
 
-    /// 歩数EXPアップグレードレベル（Lv1 = 1.0倍, Lv2 = 1.2倍...）
-    @Default(1) int stepUpgradeLevel,
+    /// タップ攻撃力アップグレードレベル
+    @Default(1) int tapUpgradeLevel,
+
+    /// 歩数ブースト終了時刻
+    DateTime? stepBoostEndTime,
   }) = _PlayerStats;
 
   factory PlayerStats.fromJson(Map<String, dynamic> json) =>

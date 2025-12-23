@@ -68,7 +68,7 @@ class UpgradeScreen extends ConsumerWidget {
                   _buildUpgradeCard(
                     context: context,
                     icon: '⚔️',
-                    title: '攻撃力強化',
+                    title: 'おともだち攻撃力',
                     description: 'おともだちの攻撃力ボーナスが増加します。\n1Lvごとに+10%',
                     currentLevel: state.attackUpgradeLevel,
                     cost: notifier.attackUpgradeCost,
@@ -82,14 +82,29 @@ class UpgradeScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   _buildUpgradeCard(
                     context: context,
-                    icon: '👟',
-                    title: '歩数効率強化',
-                    description: '歩いた時の経験値量が増加します。\n1Lvごとに+20%',
-                    currentLevel: state.stepUpgradeLevel,
-                    cost: notifier.stepUpgradeCost,
-                    canAfford: state.gold >= notifier.stepUpgradeCost,
+                    icon: '👆',
+                    title: 'タップ効率強化',
+                    description: 'タップした時の基本経験値が増加します。\n1Lvごとに+5%',
+                    currentLevel: state.tapUpgradeLevel,
+                    cost: notifier.tapUpgradeCost,
+                    canAfford: state.gold >= notifier.tapUpgradeCost,
                     onPurchase: () {
-                      if (notifier.purchaseStepUpgrade()) {
+                      if (notifier.purchaseTapUpgrade()) {
+                        _showSuccessEffect(context);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _buildBoosterCard(
+                    context: context,
+                    icon: '👟',
+                    title: '歩数ブースト',
+                    description: '30分間、歩いた時の経験値が2倍になります。\n重複購入で時間延長可能。',
+                    boostEndTime: state.stepBoostEndTime,
+                    cost: notifier.stepBoostCost,
+                    canAfford: state.gold >= notifier.stepBoostCost,
+                    onPurchase: () {
+                      if (notifier.purchaseStepBoost()) {
                         _showSuccessEffect(context);
                       }
                     },
@@ -177,7 +192,115 @@ class UpgradeScreen extends ConsumerWidget {
             ),
             child: Column(
               children: [
-                const Text('購入'),
+                const Text('強化'),
+                Text('$cost G', style: const TextStyle(fontSize: 12)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBoosterCard({
+    required BuildContext context,
+    required String icon,
+    required String title,
+    required String description,
+    required DateTime? boostEndTime,
+    required int cost,
+    required bool canAfford,
+    required VoidCallback onPurchase,
+  }) {
+    final now = DateTime.now();
+    final isBoostActive = boostEndTime != null && boostEndTime.isAfter(now);
+    final remainingMinutes =
+        isBoostActive ? boostEndTime.difference(now).inMinutes + 1 : 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color:
+              isBoostActive
+                  ? AppTheme.accentPink
+                  : (canAfford ? AppTheme.primaryColor : AppTheme.textMuted),
+          width: isBoostActive ? 2 : 1,
+        ),
+        boxShadow:
+            isBoostActive
+                ? [
+                  BoxShadow(
+                    color: AppTheme.accentPink.withValues(alpha: 0.2),
+                    blurRadius: 10,
+                    spreadRadius: 1,
+                  ),
+                ]
+                : null,
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.backgroundLight,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(icon, style: const TextStyle(fontSize: 32)),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (isBoostActive)
+                  Text(
+                    '🔥 残り $remainingMinutes 分',
+                    style: TextStyle(
+                      color: AppTheme.accentPink,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
+                else
+                  const Text(
+                    '未発動',
+                    style: TextStyle(color: AppTheme.textMuted),
+                  ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: canAfford ? onPurchase : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: canAfford ? AppTheme.accentGold : Colors.grey,
+              foregroundColor: Colors.black87,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Column(
+              children: [
+                Text(isBoostActive ? '延長' : '購入'),
                 Text('$cost G', style: const TextStyle(fontSize: 12)),
               ],
             ),

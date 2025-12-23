@@ -113,26 +113,35 @@ class GameNotifier extends Notifier<PlayerStats> {
 
   /// タップ時の処理：卵へのダメージ
   void onTap() {
+    // タップ効率: Lv1で1.0倍, Lv2で1.05倍...
+    final tapMultiplier = 1.0 + (state.tapUpgradeLevel - 1) * 0.05;
+    final baseTapExp = GameConstants.expPerTap * tapMultiplier;
+
     // 卵への基本ダメージ + おともだち総攻撃力
-    final damage = GameConstants.expPerTap + state.totalAttackPower;
+    final damage = baseTapExp + state.totalAttackPower;
 
     state = state.copyWith(totalTaps: state.totalTaps + 1);
-    _addDamageToEgg(damage); // totalAttackPower内で倍率適用済み
+    _addDamageToEgg(damage);
   }
 
   /// 歩数を追加（おともだち育成 -> 卵割りパワーに変更）
   void addSteps(int steps) {
     if (steps <= 0) return;
 
-    // 歩数EXP倍率: Lv1で1.0倍, レベルアップごとに+20%
-    final multiplier = 1.0 + (state.stepUpgradeLevel - 1) * 0.2;
+    // 歩数ブースト確認 (現在時刻が終了時刻より前なら有効)
+    final now = DateTime.now();
+    final isBoostActive =
+        state.stepBoostEndTime != null && state.stepBoostEndTime!.isAfter(now);
+
+    // ブースト中は2倍
+    final multiplier = isBoostActive ? 2.0 : 1.0;
 
     // UI表示用に歩数Expを加算
     final expFromSteps = steps * GameConstants.expPerStep * multiplier;
 
     state = state.copyWith(
       totalSteps: state.totalSteps + steps,
-      lastStepSync: DateTime.now(),
+      lastStepSync: now,
     );
 
     // 歩数も卵へのダメージとして扱う
@@ -143,15 +152,18 @@ class GameNotifier extends Notifier<PlayerStats> {
 
   /// 攻撃力アップグレードのコスト計算
   int get attackUpgradeCost {
-    // 基本100G, レベルごとに1.5倍
-    return (100 * pow(1.5, state.attackUpgradeLevel - 1)).toInt();
+    // 基本100G, レベルごとに1.8倍 (急上昇)
+    return (100 * pow(1.8, state.attackUpgradeLevel - 1)).toInt();
   }
 
-  /// 歩数効率アップグレードのコスト計算
-  int get stepUpgradeCost {
-    // 基本500G, レベルごとに1.5倍
-    return (500 * pow(1.5, state.stepUpgradeLevel - 1)).toInt();
+  /// タップ効率アップグレードのコスト計算
+  int get tapUpgradeCost {
+    // 基本200G, レベルごとに1.8倍
+    return (200 * pow(1.8, state.tapUpgradeLevel - 1)).toInt();
   }
+
+  /// 歩数ブースト(30分)のコスト
+  int get stepBoostCost => 1000;
 
   /// 攻撃力アップグレード購入
   bool purchaseAttackUpgrade() {
@@ -166,13 +178,36 @@ class GameNotifier extends Notifier<PlayerStats> {
     return false;
   }
 
-  /// 歩数効率アップグレード購入
-  bool purchaseStepUpgrade() {
-    final cost = stepUpgradeCost;
+  /// タップ効率アップグレード購入
+  bool purchaseTapUpgrade() {
+    final cost = tapUpgradeCost;
     if (state.gold >= cost) {
       state = state.copyWith(
         gold: state.gold - cost,
-        stepUpgradeLevel: state.stepUpgradeLevel + 1,
+        tapUpgradeLevel: state.tapUpgradeLevel + 1,
+      );
+      return true;
+    }
+    return false;
+  }
+
+  /// 歩数ブースト購入（30分延長）
+  bool purchaseStepBoost() {
+    final cost = stepBoostCost;
+    if (state.gold >= cost) {
+      final now = DateTime.now();
+      // 現在ブースト中ならその終了時刻から、そうでなければ現在から30分追加
+      final currentEndTime =
+          (state.stepBoostEndTime != null &&
+                  state.stepBoostEndTime!.isAfter(now))
+              ? state.stepBoostEndTime!
+              : now;
+
+      final newEndTime = currentEndTime.add(const Duration(minutes: 30));
+
+      state = state.copyWith(
+        gold: state.gold - cost,
+        stepBoostEndTime: newEndTime,
       );
       return true;
     }
