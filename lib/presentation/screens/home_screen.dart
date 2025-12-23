@@ -131,10 +131,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             }
 
                             // 半径（楕円形）: 卵の形に合わせて縦長に、かつ距離を離す
-                            // X軸（横）: 初期180、列間隔36
-                            final radiusX = 180.0 + (ringIndex * 36.0);
-                            // Y軸（縦）: 初期220、列間隔45
-                            final radiusY = 220.0 + (ringIndex * 45.0);
+                            // X軸（横）: 初期155、列間隔36
+                            final radiusX = 155.0 + (ringIndex * 36.0);
+                            // Y軸（縦）: 初期195、列間隔45
+                            final radiusY = 195.0 + (ringIndex * 45.0);
 
                             // 角度: リング内の数で等分
                             final angle =
