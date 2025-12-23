@@ -116,7 +116,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           ...List.generate(playerStats.friends.length, (index) {
                             final friend = playerStats.friends[index];
                             final total = playerStats.friends.length;
-                            final radius = 130.0; // 中心からの距離
+                            final radius = 90.0; // 中心からの距離
                             // 円形配置（上側を空けて、U字型に配置するイメージ、または全周）
                             // ここではシンプルに全周配置し、少し回転させる
                             final angle =

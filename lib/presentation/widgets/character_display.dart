@@ -111,8 +111,8 @@ class _CharacterDisplayState extends State<CharacterDisplay>
     final isEgg = monster?.isEgg ?? true;
 
     return Container(
-      width: 200,
-      height: 200,
+      width: 280,
+      height: 280,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         boxShadow: [
@@ -133,8 +133,8 @@ class _CharacterDisplayState extends State<CharacterDisplay>
         children: [
           // 背景グロー
           Container(
-                width: 180,
-                height: 180,
+                width: 240,
+                height: 240,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
@@ -168,8 +168,8 @@ class _CharacterDisplayState extends State<CharacterDisplay>
     final imagePath = monster?.imagePath ?? GenAssets.eggPath(1);
 
     return Container(
-          width: 140,
-          height: 140,
+          width: 200,
+          height: 200,
           decoration: BoxDecoration(
             // color: AppTheme.surfaceDark, // 画像がある場合は背景色は不要かも
             borderRadius: BorderRadius.circular(20),
