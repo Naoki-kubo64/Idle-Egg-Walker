@@ -13,6 +13,7 @@ import '../widgets/particle_effect.dart';
 import '../widgets/click_effect_overlay.dart';
 import 'dart:math' as math;
 import 'collection_screen.dart';
+import 'upgrade_screen.dart';
 import '../widgets/friend_monster.dart';
 
 /// メインホーム画面
@@ -220,11 +221,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 color: AppTheme.accentGold,
                 tooltip: '図鑑',
               ),
-              // 設定ボタン
+              // ショップボタン
               IconButton(
-                onPressed: _openSettings,
-                icon: const Icon(Icons.settings_rounded),
-                color: AppTheme.textSecondary,
+                onPressed: _openShop,
+                icon: const Icon(Icons.store_rounded),
+                color: AppTheme.accentPink,
+                tooltip: 'ショップ',
               ),
             ],
           ),
@@ -266,15 +268,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  /// 設定画面を開く
-  void _openSettings() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('設定画面は準備中です', style: AppTheme.bodyMedium),
-        backgroundColor: AppTheme.surfaceDark,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
+  /// ショップ画面を開く
+  void _openShop() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const UpgradeScreen()),
     );
   }
 }

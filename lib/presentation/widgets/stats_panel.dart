@@ -4,15 +4,12 @@ import '../../core/theme/app_theme.dart';
 import '../../data/models/player_stats.dart';
 
 /// 統計パネルウィジェット
-/// 
+///
 /// タップ数、歩数、おともだち数などを表示
 class StatsPanel extends StatelessWidget {
   final PlayerStats stats;
 
-  const StatsPanel({
-    super.key,
-    required this.stats,
-  });
+  const StatsPanel({super.key, required this.stats});
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +41,13 @@ class StatsPanel extends StatelessWidget {
           ),
           _buildDivider(),
           _buildStatItem(
+            icon: '💰',
+            label: 'Gold',
+            value: _formatNumber(stats.gold.toDouble()),
+            color: Colors.amber,
+          ),
+          _buildDivider(),
+          _buildStatItem(
             icon: '👣',
             label: '歩数',
             value: _formatNumber(stats.totalSteps.toDouble()),
@@ -66,10 +70,7 @@ class StatsPanel extends StatelessWidget {
           ),
         ],
       ),
-    )
-    .animate()
-    .fadeIn(duration: 500.ms)
-    .slideY(begin: 0.2, duration: 500.ms);
+    ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.2, duration: 500.ms);
   }
 
   Widget _buildStatItem({
@@ -82,38 +83,36 @@ class StatsPanel extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          icon,
-          style: const TextStyle(fontSize: 20),
-        )
-        .animate(onPlay: (c) => c.repeat())
-        .scale(
-          begin: const Offset(1.0, 1.0),
-          end: const Offset(1.1, 1.1),
-          duration: 1.seconds,
-          curve: Curves.easeInOut,
-        )
-        .then()
-        .scale(
-          begin: const Offset(1.1, 1.1),
-          end: const Offset(1.0, 1.0),
-          duration: 1.seconds,
-          curve: Curves.easeInOut,
-        ),
+        Text(icon, style: const TextStyle(fontSize: 20))
+            .animate(onPlay: (c) => c.repeat())
+            .scale(
+              begin: const Offset(1.0, 1.0),
+              end: const Offset(1.1, 1.1),
+              duration: 1.seconds,
+              curve: Curves.easeInOut,
+            )
+            .then()
+            .scale(
+              begin: const Offset(1.1, 1.1),
+              end: const Offset(1.0, 1.0),
+              duration: 1.seconds,
+              curve: Curves.easeInOut,
+            ),
         const SizedBox(height: 4),
         Text(
           value,
           style: AppTheme.titleLarge.copyWith(
             color: color,
             fontWeight: FontWeight.bold,
-            shadows: isHighlighted
-                ? [
-                    Shadow(
-                      color: color.withValues(alpha: 0.5),
-                      blurRadius: 8,
-                    ),
-                  ]
-                : null,
+            shadows:
+                isHighlighted
+                    ? [
+                      Shadow(
+                        color: color.withValues(alpha: 0.5),
+                        blurRadius: 8,
+                      ),
+                    ]
+                    : null,
           ),
         ),
         Text(

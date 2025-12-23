@@ -56,6 +56,16 @@ class PlayerStats with _$PlayerStats {
 
     /// 1日の目標歩数
     @Default(8000) int dailyStepGoal,
+
+    // === 通貨・アップグレード ===
+    /// 所持金 (Gold)
+    @Default(0) int gold,
+
+    /// 攻撃力アップグレードレベル（Lv1 = 1.0倍, Lv2 = 1.1倍...）
+    @Default(1) int attackUpgradeLevel,
+
+    /// 歩数EXPアップグレードレベル（Lv1 = 1.0倍, Lv2 = 1.2倍...）
+    @Default(1) int stepUpgradeLevel,
   }) = _PlayerStats;
 
   factory PlayerStats.fromJson(Map<String, dynamic> json) =>
@@ -80,7 +90,13 @@ class PlayerStats with _$PlayerStats {
   /// おともだちの総攻撃力（タップ時の加算値）
   int get totalAttackPower {
     if (friends.isEmpty) return 0;
-    return friends.fold(0, (sum, monster) => sum + monster.attackPower);
+    final basePower = friends.fold(
+      0,
+      (sum, monster) => sum + monster.attackPower,
+    );
+    // アップグレード補正: Lv1で1.0倍, レベルアップごとに+10%
+    final multiplier = 1.0 + (attackUpgradeLevel - 1) * 0.1;
+    return (basePower * multiplier).toInt();
   }
 
   /// 現在のモンスターが卵かどうか
