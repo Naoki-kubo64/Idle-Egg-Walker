@@ -29,6 +29,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _backgroundController;
+  late AnimationController _pokeController;
+  late Animation<double> _pokeAnimation;
   final GlobalKey<ClickEffectOverlayState> _clickEffectKey = GlobalKey();
 
   @override
@@ -39,12 +41,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       vsync: this,
       duration: const Duration(seconds: 10),
     )..repeat();
+
+    // つつくアニメーション: 1秒周期
+    _pokeController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    );
+
+    // 0.0 -> 1.0 (突く) -> 0.0 (戻る) -> 待機
+    _pokeAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 0.0,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 15, // 0.15秒で突く
+      ),
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 1.0,
+          end: 0.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
+        weight: 15, // 0.15秒で戻る
+      ),
+      TweenSequenceItem(
+        tween: ConstantTween(0.0),
+        weight: 70, // 残り0.7秒は待機
+      ),
+    ]).animate(_pokeController);
+
+    _pokeController.repeat();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _backgroundController.dispose();
+    _pokeController.dispose();
     super.dispose();
   }
 
@@ -119,7 +152,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         alignment: Alignment.center,
                         clipBehavior: Clip.none,
                         children: [
-                          // おともだち（背後のモンスターたち）
                           ...List.generate(playerStats.friends.length, (index) {
                             final friend = playerStats.friends[index];
 
@@ -137,12 +169,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               countOnLayer = remaining;
                             }
 
-                            // 半径（楕円形）: 卵の形に合わせて縦長に、かつ距離を離す
-                            // X軸（横）: 初期110、列間隔34
-                            final radiusX = 110.0 + (ringIndex * 34.0);
-                            // Y軸（縦）: 初期135、列間隔42
-                            final radiusY = 135.0 + (ringIndex * 42.0);
-
                             // 角度: リング内の数で等分
                             final angle =
                                 (2 *
@@ -151,11 +177,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                     math.max(1, countOnLayer)) -
                                 (math.pi / 2);
 
-                            return Transform.translate(
-                              offset: Offset(
-                                radiusX * math.cos(angle),
-                                radiusY * math.sin(angle) + 20, // 少し下にずらす
-                              ),
+                            return AnimatedBuilder(
+                              animation: _pokeAnimation,
+                              builder: (context, child) {
+                                // つつきオフセット: アニメーション値(0~1) * 25px 分だけ中心に寄る
+                                final pokeOffset = _pokeAnimation.value * 25.0;
+
+                                // X軸（横）: 初期100 - poke
+                                final radiusX =
+                                    (100.0 + (ringIndex * 34.0)) - pokeOffset;
+                                // Y軸（縦）: 初期120 - poke
+                                final radiusY =
+                                    (120.0 + (ringIndex * 42.0)) - pokeOffset;
+
+                                return Transform.translate(
+                                  offset: Offset(
+                                    radiusX * math.cos(angle),
+                                    radiusY * math.sin(angle) + 20,
+                                  ),
+                                  child: child,
+                                );
+                              },
                               child: FriendMonster(
                                 monster: friend,
                                 onTap: () {
