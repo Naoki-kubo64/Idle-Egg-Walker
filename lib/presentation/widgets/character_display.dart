@@ -42,30 +42,25 @@ class _CharacterDisplayState extends State<CharacterDisplay>
     // バウンスアニメーション（タップ時）
     _bounceController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 150),
+      duration: const Duration(milliseconds: 600), // 弾性振動を見せるため少し長く
     );
 
     _bounceAnimation = TweenSequence<double>([
+      // ギュッと縮む (素早く)
       TweenSequenceItem(
         tween: Tween<double>(
           begin: 1.0,
-          end: 0.85,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 40,
+          end: 0.7,
+        ).chain(CurveTween(curve: Curves.easeOutQuart)),
+        weight: 15,
       ),
+      // ビヨーンと戻る (弾性)
       TweenSequenceItem(
         tween: Tween<double>(
-          begin: 0.85,
-          end: 1.1,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 30,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 1.1,
+          begin: 0.7,
           end: 1.0,
         ).chain(CurveTween(curve: Curves.elasticOut)),
-        weight: 30,
+        weight: 85,
       ),
     ]).animate(_bounceController);
   }

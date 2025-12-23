@@ -4,9 +4,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'presentation/screens/main_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/game_notifier.dart';
+import 'services/sound_manager.dart'; // 追加
+import 'services/notification_service.dart'; // 追加
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // サービスの初期化
+  await NotificationService().init();
+  await NotificationService().requestPermissions();
+
+  await SoundManager().init();
+  SoundManager().playBgm();
+
   runApp(const ProviderScope(child: EggWalkerApp()));
 }
 

@@ -6,7 +6,9 @@ import '../../data/models/player_stats.dart';
 import '../../data/repositories/health_repository.dart';
 import '../../core/constants/game_constants.dart';
 import '../../core/constants/gen_assets.dart';
-import '../../core/theme/app_theme.dart'; // 追加
+import '../../core/theme/app_theme.dart';
+import '../../services/sound_manager.dart'; // 追加
+import '../../services/notification_service.dart'; // 追加
 
 /// ゲーム状態を管理するNotifier
 class GameNotifier extends Notifier<PlayerStats> {
@@ -113,6 +115,7 @@ class GameNotifier extends Notifier<PlayerStats> {
 
   /// タップ時の処理：卵へのダメージ
   void onTap() {
+    SoundManager().playTap(); // SE
     // タップ効率: Lv1で1.0倍, Lv2で1.05倍...
     final tapMultiplier = 1.0 + (state.tapUpgradeLevel - 1) * 0.05;
     final baseTapExp = GameConstants.expPerTap * tapMultiplier;
@@ -189,6 +192,7 @@ class GameNotifier extends Notifier<PlayerStats> {
         gold: state.gold - cost,
         attackUpgradeLevel: state.attackUpgradeLevel + 1,
       );
+      SoundManager().playDecide(); // SE
       return true;
     }
     return false;
@@ -202,6 +206,7 @@ class GameNotifier extends Notifier<PlayerStats> {
         gold: state.gold - cost,
         tapUpgradeLevel: state.tapUpgradeLevel + 1,
       );
+      SoundManager().playDecide(); // SE
       return true;
     }
     return false;
@@ -225,6 +230,16 @@ class GameNotifier extends Notifier<PlayerStats> {
         gold: state.gold - cost,
         stepBoostEndTime: newEndTime,
       );
+      SoundManager().playDecide(); // SE
+
+      // 通知スケジュール (Webスタブではログのみ)
+      NotificationService().scheduleNotification(
+        id: 100,
+        title: 'ブースト終了',
+        body: '歩数ブーストの効果が終了しました！',
+        scheduledDate: newEndTime,
+      );
+
       return true;
     }
     return false;
@@ -255,6 +270,7 @@ class GameNotifier extends Notifier<PlayerStats> {
     }
 
     // 5. 新しい卵をセット (ダメージリセット)
+    SoundManager().playFanfare(); // SE
     state = state.copyWith(
       currentExp: 0.0,
       currentMonster: _createNewEgg(),
