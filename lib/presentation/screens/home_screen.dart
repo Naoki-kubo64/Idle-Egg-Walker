@@ -5,6 +5,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/constants/game_constants.dart';
 import '../../providers/game_notifier.dart';
 import '../../data/models/monster.dart';
+import '../../data/models/player_stats.dart';
 import '../widgets/character_display.dart';
 import '../widgets/exp_bar.dart';
 import '../widgets/stats_panel.dart';
@@ -55,7 +56,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Future<void> _checkBackgroundProgress() async {
     final expGained = await ref.read(gameProvider.notifier).onAppResume();
     if (expGained > 0 && mounted) {
-      _showWelcomeBackDialog(expGained);
+      _showWelcomeBackDialog(expGained.toInt());
     }
   }
 
@@ -98,7 +99,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: ExpBar(
                         currentExp: playerStats.currentExp,
-                        maxExp: _getNextEvolutionExp(currentMonster),
+                        maxExp: _getNextEvolutionExp(
+                          currentMonster,
+                          playerStats,
+                        ),
                       ),
                     ),
 
@@ -209,11 +213,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   /// 次の進化に必要なEXPを取得
-  double _getNextEvolutionExp(Monster? monster) {
+  double _getNextEvolutionExp(Monster? monster, PlayerStats stats) {
     if (monster == null) return GameConstants.expToHatch;
 
     return switch (monster.stage) {
-      EvolutionStage.egg => GameConstants.expToHatch,
+      EvolutionStage.egg =>
+        GameConstants.expToHatch + (stats.friends.length * 500.0),
       EvolutionStage.baby => GameConstants.expToTeen,
       EvolutionStage.teen => GameConstants.expToAdult,
       EvolutionStage.adult => GameConstants.expToAdult, // 最大値を維持

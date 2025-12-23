@@ -42,24 +42,49 @@ class GameNotifier extends Notifier<PlayerStats> {
   Future<void> _initHealth() async {
     // 権限リクエスト
     await _healthRepository.requestPermissions();
-    // 起動時の同期
+    // 起動時の同期（歩数＆時間経過）
     await syncSteps();
+    _calculateOfflineDamage();
   }
 
   /// アプリ復帰時に呼び出されるメソッド
-  Future<int> onAppResume() async {
-    return await syncSteps();
+  /// 獲得した総EXP（ダメージ）を返す
+  Future<double> onAppResume() async {
+    final damageFromSteps = await syncSteps();
+    final damageFromTime = _calculateOfflineDamage();
+
+    return damageFromSteps + damageFromTime;
   }
 
   /// 歩数を同期し、変換したExpを加算する
-  /// 加算されたExp量を返す
-  Future<int> syncSteps() async {
+  /// 加算されたダメージ量を返す
+  Future<double> syncSteps() async {
     final steps = await _healthRepository.getStepsSinceLastSync();
     if (steps > 0) {
       addSteps(steps);
-      return steps; // UI表示用
+      return steps * GameConstants.expPerStep;
     }
-    return 0;
+    return 0.0;
+  }
+
+  /// 放置時間（オフライン）分のダメージを計算・加算
+  double _calculateOfflineDamage() {
+    final now = DateTime.now();
+    final last = state.lastPlayedAt ?? now;
+    final diffInSeconds = now.difference(last).inSeconds;
+
+    if (diffInSeconds > 0) {
+      // 平均秒間ダメージ（現在の攻撃力ベース）
+      // ※厳密には放置中に進化したりすると効率が変わるが、簡易的に現在の攻撃力で計算
+      final outputPerSec = state.totalAttackPower.toDouble() * 0.5;
+      final damage = diffInSeconds * outputPerSec;
+
+      if (damage > 0) {
+        _addDamageToEgg(damage);
+        return damage;
+      }
+    }
+    return 0.0;
   }
 
   void _startAutoExpTimer() {
@@ -71,7 +96,7 @@ class GameNotifier extends Notifier<PlayerStats> {
 
   // 秒間の自動ダメージ（おともだち効果）
   void _addAutoExp() {
-    final damage = state.totalAttackPower.toDouble() * 0.1; // 1秒あたり攻撃力の10%など
+    final damage = state.totalAttackPower.toDouble() * 0.5; // 1秒あたり攻撃力の50%
     if (damage > 0) {
       _addDamageToEgg(damage);
     }
@@ -86,46 +111,20 @@ class GameNotifier extends Notifier<PlayerStats> {
     _addDamageToEgg(damage);
   }
 
-  /// 歩数を追加（おともだち育成）
+  /// 歩数を追加（おともだち育成 -> 卵割りパワーに変更）
   void addSteps(int steps) {
     if (steps <= 0) return;
 
-    // 全おともだちに歩数加算
-    final updatedFriends =
-        state.friends.map((friend) {
-          if (friend.isFullyEvolved) return friend;
-
-          final newSteps = friend.accumulatedSteps + steps;
-
-          // 進化チェック
-          EvolutionStage nextStage = friend.stage;
-
-          // Baby -> Teen (5000歩)
-          if (friend.stage == EvolutionStage.baby && newSteps >= 5000) {
-            nextStage = EvolutionStage.teen;
-          }
-          // Teen -> Adult (合計15000歩)
-          else if (friend.stage == EvolutionStage.teen && newSteps >= 15000) {
-            nextStage = EvolutionStage.adult;
-          }
-
-          if (nextStage != friend.stage) {
-            // 進化！
-            return friend.copyWith(
-              stage: nextStage,
-              accumulatedSteps: newSteps,
-              attackPower: _calculateAttackPower(nextStage, friend.rarity),
-            );
-          } else {
-            return friend.copyWith(accumulatedSteps: newSteps);
-          }
-        }).toList();
+    // UI表示用に歩数Expを加算
+    final expFromSteps = steps * GameConstants.expPerStep;
 
     state = state.copyWith(
       totalSteps: state.totalSteps + steps,
-      friends: updatedFriends,
       lastStepSync: DateTime.now(),
     );
+
+    // 歩数も卵へのダメージとして扱う
+    _addDamageToEgg(expFromSteps);
   }
 
   /// 卵の孵化処理（ガチャ＆リセット）
@@ -153,22 +152,39 @@ class GameNotifier extends Notifier<PlayerStats> {
 
   /// ガチャ確率に基づいてランダムなモンスターを生成
   Monster _generateRandomMonster() {
-    final monsterId = _random.nextInt(GenAssets.totalMonsters) + 1;
+    // 利用可能なIDリストからランダムに選択
+    final index = _random.nextInt(GenAssets.availableMonsterIds.length);
+    final monsterId = GenAssets.availableMonsterIds[index];
+
     final rarity = _determineRarity();
+    final stage = _determineStage(rarity); // レアリティに応じて進化段階も決定
     final name = _generateMonsterName(monsterId, rarity);
 
     return Monster(
       id: monsterId,
       name: name,
-      stage: EvolutionStage.baby, // 初期はBaby
+      stage: stage,
       rarity: rarity,
       expProductionRate: 0, // 未使用
-      attackPower: _calculateAttackPower(EvolutionStage.baby, rarity),
+      attackPower: _calculateAttackPower(stage, rarity),
       accumulatedSteps: 0,
       isDiscovered: true,
       obtainedAt: DateTime.now(),
       description: '奇跡的に生まれた、${AppTheme.getRarityName(rarity)}ランクのモンスター。',
     );
+  }
+
+  /// 進化段階（ランク）を決定
+  EvolutionStage _determineStage(int rarity) {
+    // レアリティが高いほど、最初から進化している確率を上げるなどの調整も可能
+    final roll = _random.nextDouble() * 100;
+
+    // 成体(Adult): 5%
+    if (roll < 5) return EvolutionStage.adult;
+    // 成長体(Teen): 25%
+    if (roll < 30) return EvolutionStage.teen;
+    // 幼体(Baby): 70%
+    return EvolutionStage.baby;
   }
 
   /// レアリティを決定（加重ランダム）
@@ -249,8 +265,8 @@ class GameNotifier extends Notifier<PlayerStats> {
   /// 卵の孵化に必要なHP
   double _getHatchThreshold() {
     // おともだち数が増えるごとに難易度アップ
-    // 基本HP 100 + (おともだち数 * 500)
-    return 100.0 + (state.friends.length * 500.0);
+    // 基本HP (500) + (おともだち数 * 500)
+    return GameConstants.expToHatch + (state.friends.length * 500.0);
   }
 
   /// ゲームデータをリセット（デバッグ用）

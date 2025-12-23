@@ -46,7 +46,7 @@ class _EggWalkerAppState extends ConsumerState<EggWalkerApp>
     if (expGained > 0 && mounted) {
       // 少し遅延させてからダイアログを表示（画面描画完了待ち）
       Future.delayed(const Duration(milliseconds: 500), () {
-        _showWelcomeBackDialog(expGained);
+        _showWelcomeBackDialog(expGained.toInt());
       });
     }
   }

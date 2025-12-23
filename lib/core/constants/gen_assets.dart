@@ -58,7 +58,7 @@ class GenAssets {
   static const String placeholder = '$_basePath/placeholder.png';
 
   /// 全モンスターIDのリスト（現在登録されているもの）
-  static const List<int> availableMonsterIds = [1, 2, 3, 4, 5];
+  static const List<int> availableMonsterIds = [1, 2];
 
   /// 利用可能なモンスター数
   static int get totalMonsters => availableMonsterIds.length;
