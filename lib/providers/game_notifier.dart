@@ -163,7 +163,7 @@ class GameNotifier extends Notifier<PlayerStats> {
   }
 
   /// 歩数ブースト(30分)のコスト
-  int get stepBoostCost => 1000;
+  int get stepBoostCost => 3000;
 
   /// 攻撃力アップグレード購入
   bool purchaseAttackUpgrade() {
