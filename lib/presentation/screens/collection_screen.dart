@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/constants/gen_assets.dart';
 import '../../providers/game_notifier.dart';
+import '../../data/models/monster.dart';
 
 /// 図鑑画面
 class CollectionScreen extends ConsumerWidget {
@@ -11,7 +12,329 @@ class CollectionScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final discoveredIds = ref.watch(gameProvider.select((s) => s.discoveredMonsterIds));
+    // 互換性のため discoveredIds も参照するが、基本は collectionCatalog を使う
+    final catalog = ref.watch(gameProvider.select((s) => s.collectionCatalog));
+    final discoveredIds = ref.watch(
+      gameProvider.select((s) => s.discoveredMonsterIds),
+    );
+    final totalMonsters = GenAssets.availableMonsterIds.length;
+
+    // 発見数の計算（のべ種類数）
+    final discoveredCount = catalog.length;
+    // IDベースの発見数（種族数）
+    final discoveredSpeciesCount = discoveredIds.length;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('モンスター図鑑'),
+        backgroundColor: AppTheme.backgroundDark,
+      ),
+      body: Container(
+        decoration: const BoxDecoration(gradient: AppTheme.backgroundGradient),
+        child: Column(
+          children: [
+            // 収集率ヘッダー
+            _buildStatsHeader(discoveredCount, totalMonsters * 3), // 全種族x3形態
+            // モンスターリスト
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: totalMonsters,
+                itemBuilder: (context, index) {
+                  final monsterId = GenAssets.availableMonsterIds[index];
+                  // 種族名（簡易的にここで定義）
+                  final name = _getSpeciesName(monsterId);
+
+                  return _CollectionRow(
+                    id: monsterId,
+                    name: name,
+                    catalog: catalog,
+                  ).animate(delay: (index * 50).ms).fadeIn().slideX();
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsHeader(int discovered, int total) {
+    final percentage =
+        total > 0 ? (discovered / total * 100).toStringAsFixed(1) : '0.0';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 10),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'コンプリート率',
+                style: AppTheme.labelLarge.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$percentage%',
+                style: AppTheme.headlineMedium.copyWith(
+                  color: AppTheme.secondaryColor,
+                ),
+              ),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '発見形態数',
+                style: AppTheme.labelLarge.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$discovered / $total',
+                style: AppTheme.headlineMedium.copyWith(
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getSpeciesName(int id) {
+    return switch (id) {
+      1 => 'ドラゴン',
+      2 => 'スライム',
+      3 => 'ゴースト',
+      4 => 'ゴーレム',
+      5 => 'フェアリー',
+      6 => 'ウルフ',
+      7 => 'ロボ',
+      8 => 'プラント',
+      9 => 'バット',
+      10 => 'ペンギン',
+      11 => 'ミミック',
+      12 => 'UFO',
+      13 => 'ワイバーン',
+      14 => 'スケルトン',
+      15 => 'イエティ',
+      16 => 'カクタス',
+      17 => 'クラゲ',
+      18 => 'ニンジャ',
+      19 => 'サムライ',
+      20 => 'ウィザード',
+      21 => 'ナイト',
+      22 => 'デビル',
+      _ => 'Num.$id',
+    };
+  }
+}
+
+class _CollectionRow extends StatelessWidget {
+  final int id;
+  final String name;
+  final Map<String, int> catalog;
+
+  const _CollectionRow({
+    required this.id,
+    required this.name,
+    required this.catalog,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceLight.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ヘッダー: No.と名前
+          Padding(
+            padding: const EdgeInsets.only(left: 8, bottom: 8),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'No.${id.toString().padLeft(3, '0')}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  name,
+                  style: AppTheme.titleMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 3形態の並び
+          Row(
+            children: [
+              _buildStageItem(context, EvolutionStage.baby),
+              const SizedBox(width: 8),
+              _buildStageItem(context, EvolutionStage.teen),
+              const SizedBox(width: 8),
+              _buildStageItem(context, EvolutionStage.adult),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStageItem(BuildContext context, EvolutionStage stage) {
+    final key = '${id}_${stage.name}';
+    final rarity = catalog[key]; // 未発見ならnull
+    final isDiscovered = rarity != null;
+
+    final imagePath = GenAssets.monster(id, _toMonsterStage(stage));
+
+    return Expanded(
+      child: AspectRatio(
+        aspectRatio: 1.0, // 正方形
+        child: Container(
+          decoration: BoxDecoration(
+            color:
+                isDiscovered
+                    ? AppTheme.getRarityColor(rarity).withValues(alpha: 0.1)
+                    : Colors.black12,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color:
+                  isDiscovered
+                      ? AppTheme.getRarityColor(rarity).withValues(alpha: 0.5)
+                      : Colors.transparent,
+              width: 2,
+            ),
+          ),
+          child: Stack(
+            children: [
+              // 画像
+              Center(
+                child:
+                    isDiscovered
+                        ? Image.asset(
+                          imagePath,
+                          fit: BoxFit.contain,
+                          errorBuilder:
+                              (_, __, ___) => const Text(
+                                '🥚',
+                                style: TextStyle(fontSize: 24),
+                              ),
+                        )
+                        : Opacity(
+                          opacity: 0.3,
+                          child: Image.asset(
+                            imagePath,
+                            fit: BoxFit.contain,
+                            color: Colors.black, // シルエット
+                            errorBuilder:
+                                (_, __, ___) => const Text(
+                                  '?',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                          ),
+                        ),
+              ),
+
+              // レアリティバッジ
+              if (isDiscovered)
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.getRarityColor(rarity),
+                      borderRadius: BorderRadius.circular(8),
+                      // boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
+                    ),
+                    child: Text(
+                      AppTheme.getRarityName(rarity),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // EvolutionStage -> MonsterStage 変換 (GenAssets用)
+  MonsterStage _toMonsterStage(EvolutionStage stage) {
+    return switch (stage) {
+      EvolutionStage.baby => MonsterStage.baby,
+      EvolutionStage.teen => MonsterStage.teen,
+      EvolutionStage.adult => MonsterStage.adult,
+      _ => MonsterStage.baby,
+    };
+  }
+}
+
+                Text(
+                  name,
+                  style: AppTheme.bodyLarge.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // 3形態の並び
+
+
     final totalMonsters = GenAssets.totalMonsters;
 
     return Scaffold(
@@ -20,14 +343,12 @@ class CollectionScreen extends ConsumerWidget {
         backgroundColor: AppTheme.backgroundDark,
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.backgroundGradient,
-        ),
+        decoration: const BoxDecoration(gradient: AppTheme.backgroundGradient),
         child: Column(
           children: [
             // 収集率ヘッダー
             _buildStatsHeader(discoveredIds.length, totalMonsters),
-            
+
             // モンスターグリッド
             Expanded(
               child: GridView.builder(
@@ -42,14 +363,11 @@ class CollectionScreen extends ConsumerWidget {
                 itemBuilder: (context, index) {
                   final monsterId = index + 1; // IDは1始まり
                   final isDiscovered = discoveredIds.contains(monsterId);
-                  
+
                   return _CollectionItem(
                     id: monsterId,
                     isDiscovered: isDiscovered,
-                  )
-                  .animate(delay: (index * 50).ms)
-                  .fadeIn()
-                  .scale();
+                  ).animate(delay: (index * 50).ms).fadeIn().scale();
                 },
               ),
             ),
@@ -61,7 +379,7 @@ class CollectionScreen extends ConsumerWidget {
 
   Widget _buildStatsHeader(int discovered, int total) {
     final percentage = (discovered / total * 100).toStringAsFixed(1);
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.all(16),
@@ -70,10 +388,7 @@ class CollectionScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 10,
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 10),
         ],
       ),
       child: Row(
@@ -83,12 +398,16 @@ class CollectionScreen extends ConsumerWidget {
             children: [
               Text(
                 '発見率',
-                style: AppTheme.labelLarge.copyWith(color: AppTheme.textSecondary),
+                style: AppTheme.labelLarge.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 '$percentage%',
-                style: AppTheme.headlineMedium.copyWith(color: AppTheme.secondaryColor),
+                style: AppTheme.headlineMedium.copyWith(
+                  color: AppTheme.secondaryColor,
+                ),
               ),
             ],
           ),
@@ -97,12 +416,16 @@ class CollectionScreen extends ConsumerWidget {
             children: [
               Text(
                 '見つけた数',
-                style: AppTheme.labelLarge.copyWith(color: AppTheme.textSecondary),
+                style: AppTheme.labelLarge.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 '$discovered / $total',
-                style: AppTheme.headlineMedium.copyWith(color: AppTheme.textPrimary),
+                style: AppTheme.headlineMedium.copyWith(
+                  color: AppTheme.textPrimary,
+                ),
               ),
             ],
           ),
@@ -117,10 +440,7 @@ class _CollectionItem extends StatelessWidget {
   final int id;
   final bool isDiscovered;
 
-  const _CollectionItem({
-    required this.id,
-    required this.isDiscovered,
-  });
+  const _CollectionItem({required this.id, required this.isDiscovered});
 
   @override
   Widget build(BuildContext context) {
@@ -129,19 +449,21 @@ class _CollectionItem extends StatelessWidget {
         color: AppTheme.surfaceLight,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDiscovered 
-              ? AppTheme.accentGold.withValues(alpha: 0.5) 
-              : AppTheme.textMuted.withValues(alpha: 0.2),
+          color:
+              isDiscovered
+                  ? AppTheme.accentGold.withValues(alpha: 0.5)
+                  : AppTheme.textMuted.withValues(alpha: 0.2),
           width: isDiscovered ? 2 : 1,
         ),
-        boxShadow: isDiscovered
-            ? [
-                BoxShadow(
-                  color: AppTheme.accentGold.withValues(alpha: 0.2),
-                  blurRadius: 8,
-                ),
-              ]
-            : null,
+        boxShadow:
+            isDiscovered
+                ? [
+                  BoxShadow(
+                    color: AppTheme.accentGold.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                  ),
+                ]
+                : null,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -150,19 +472,19 @@ class _CollectionItem extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(8.0),
-              child: isDiscovered
-                  ? _buildMonsterImage()
-                  : _buildSilhouette(),
+              child: isDiscovered ? _buildMonsterImage() : _buildSilhouette(),
             ),
           ),
-          
+
           // ID表示
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 4),
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.3),
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(10)),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(10),
+              ),
             ),
             child: Text(
               'No.${id.toString().padLeft(3, '0')}',

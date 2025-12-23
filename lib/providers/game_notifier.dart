@@ -141,12 +141,23 @@ class GameNotifier extends Notifier<PlayerStats> {
       discoveredIds.add(newMonster.id);
     }
 
-    // 4. 新しい卵をセット (ダメージリセット)
+    // 4. 図鑑更新 (詳細データ)
+    final catalog = Map<String, int>.from(state.collectionCatalog);
+    final key = '${newMonster.id}_${newMonster.stage.name}';
+    final currentRarity = catalog[key] ?? 0;
+
+    // 現在より高いレアリティなら更新、または新規登録
+    if (newMonster.rarity > currentRarity) {
+      catalog[key] = newMonster.rarity;
+    }
+
+    // 5. 新しい卵をセット (ダメージリセット)
     state = state.copyWith(
       currentExp: 0.0,
       currentMonster: _createNewEgg(),
       friends: updatedFriends,
       discoveredMonsterIds: discoveredIds,
+      collectionCatalog: catalog,
     );
   }
 
@@ -220,6 +231,16 @@ class GameNotifier extends Notifier<PlayerStats> {
       10 => 'ペンギン',
       11 => 'ミミック',
       12 => 'UFO',
+      13 => 'ワイバーン',
+      14 => 'スケルトン',
+      15 => 'イエティ',
+      16 => 'カクタス',
+      17 => 'クラゲ',
+      18 => 'ニンジャ',
+      19 => 'サムライ',
+      20 => 'ウィザード',
+      21 => 'ナイト',
+      22 => 'デビル',
       _ => '謎の未確認生物',
     };
   }

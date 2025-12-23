@@ -28,8 +28,13 @@ class PlayerStats with _$PlayerStats {
     /// おともだち（育成完了したモンスター）リスト
     @Default([]) List<Monster> friends,
 
-    /// 図鑑で発見済みのモンスターIDリスト
+    /// 図鑑で発見済みのモンスターIDリスト（旧仕様・互換性維持）
     @Default([]) List<int> discoveredMonsterIds,
+
+    /// 詳細な図鑑データ
+    /// Key: "{id}_{stageName}" (例: "1_baby")
+    /// Value: 最高レアリティ (1-5)
+    @Default({}) Map<String, int> collectionCatalog,
 
     /// 最後に歩数を同期した時刻
     DateTime? lastStepSync,
