@@ -130,8 +130,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               countOnLayer = remaining;
                             }
 
-                            // 半径: 基本90 + リングごとに70追加
-                            final radius = 90.0 + (ringIndex * 70.0);
+                            // 半径（楕円形）: 卵の形に合わせて縦長に、かつ距離を離す
+                            // X軸（横）
+                            final radiusX = 170.0 + (ringIndex * 60.0);
+                            // Y軸（縦）
+                            final radiusY = 210.0 + (ringIndex * 70.0);
 
                             // 角度: リング内の数で等分
                             final angle =
@@ -143,8 +146,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
                             return Transform.translate(
                               offset: Offset(
-                                radius * math.cos(angle),
-                                radius * math.sin(angle) + 20, // 少し下にずらす
+                                radiusX * math.cos(angle),
+                                radiusY * math.sin(angle) + 20, // 少し下にずらす
                               ),
                               child: FriendMonster(
                                 monster: friend,
