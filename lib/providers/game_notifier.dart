@@ -57,13 +57,11 @@ class GameNotifier extends Notifier<PlayerStats> {
     final steps = await _healthRepository.getStepsSinceLastSync();
     if (steps > 0) {
       addSteps(steps);
-      final exp = (steps * GameConstants.expPerStep).toInt();
-      return exp; // UI側でダイアログ表示に使用
+      return steps; // UI表示用
     }
     return 0;
   }
 
-  /// 自動EXP獲得タイマーを開始
   void _startAutoExpTimer() {
     _autoExpTimer?.cancel();
     _autoExpTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -71,139 +69,102 @@ class GameNotifier extends Notifier<PlayerStats> {
     });
   }
 
-  /// 1秒ごとの自動EXP加算処理
+  // 秒間の自動ダメージ（おともだち効果）
   void _addAutoExp() {
-    final currentState = state;
-
-    // 基本の自動EXP + おともだちボーナス
-    double autoExp = GameConstants.baseAutoExpPerSecond;
-    autoExp += currentState.autoExpPerSecond;
-
-    if (autoExp > 0) {
-      _addExp(autoExp);
+    final damage = state.totalAttackPower.toDouble() * 0.1; // 1秒あたり攻撃力の10%など
+    if (damage > 0) {
+      _addDamageToEgg(damage);
     }
   }
 
-  /// タップ時の処理
+  /// タップ時の処理：卵へのダメージ
   void onTap() {
-    // 基本タップ力(1) + おともだちの総攻撃力
-    final damage = 1 + state.totalAttackPower;
+    // 卵への基本ダメージ(50) + おともだち総攻撃力
+    final damage = 50.0 + state.totalAttackPower;
 
-    final newStats = state.copyWith(totalTaps: state.totalTaps + 1);
-    state = newStats;
-
-    _addExp(damage.toDouble());
+    state = state.copyWith(totalTaps: state.totalTaps + 1);
+    _addDamageToEgg(damage);
   }
 
-  /// 歩数を追加（ヘルスパッケージから呼ばれる）
+  /// 歩数を追加（おともだち育成）
   void addSteps(int steps) {
     if (steps <= 0) return;
 
-    final expFromSteps = steps * GameConstants.expPerStep;
+    // 全おともだちに歩数加算
+    final updatedFriends =
+        state.friends.map((friend) {
+          if (friend.isFullyEvolved) return friend;
+
+          final newSteps = friend.accumulatedSteps + steps;
+
+          // 進化チェック
+          EvolutionStage nextStage = friend.stage;
+
+          // Baby -> Teen (5000歩)
+          if (friend.stage == EvolutionStage.baby && newSteps >= 5000) {
+            nextStage = EvolutionStage.teen;
+          }
+          // Teen -> Adult (合計15000歩)
+          else if (friend.stage == EvolutionStage.teen && newSteps >= 15000) {
+            nextStage = EvolutionStage.adult;
+          }
+
+          if (nextStage != friend.stage) {
+            // 進化！
+            return friend.copyWith(
+              stage: nextStage,
+              accumulatedSteps: newSteps,
+              attackPower: _calculateAttackPower(nextStage, friend.rarity),
+            );
+          } else {
+            return friend.copyWith(accumulatedSteps: newSteps);
+          }
+        }).toList();
 
     state = state.copyWith(
       totalSteps: state.totalSteps + steps,
+      friends: updatedFriends,
       lastStepSync: DateTime.now(),
     );
-
-    _addExp(expFromSteps);
   }
 
-  /// EXPを加算し、進化チェックを行う
-  void _addExp(double amount) {
-    final newExp = state.currentExp + amount;
-    final newTotalExp = state.totalExpEarned + amount;
+  /// 卵の孵化処理（ガチャ＆リセット）
+  void _hatchEgg() {
+    // 1. ガチャでモンスター生成
+    final newMonster = _generateRandomMonster();
 
-    state = state.copyWith(
-      currentExp: newExp,
-      totalExpEarned: newTotalExp,
-      lastPlayedAt: DateTime.now(),
-    );
+    // 2. おともだちリストに追加
+    final updatedFriends = List<Monster>.from(state.friends)..add(newMonster);
 
-    // 進化チェック
-    _checkEvolution();
-  }
-
-  /// 進化条件をチェック
-  void _checkEvolution() {
-    final monster = state.currentMonster;
-    if (monster == null) return;
-
-    final threshold = _getEvolutionThreshold(monster.stage);
-    if (threshold == null) return; // 最終進化済み
-
-    if (state.currentExp >= threshold) {
-      evolve();
-    }
-  }
-
-  /// 進化閾値を取得
-  double? _getEvolutionThreshold(EvolutionStage stage) {
-    return switch (stage) {
-      // 卵のHPは、おともだちが増えるごとに増加（難易度アップ）
-      EvolutionStage.egg =>
-        GameConstants.expToHatch + (state.friends.length * 100).toDouble(),
-      EvolutionStage.baby => GameConstants.expToTeen,
-      EvolutionStage.teen => GameConstants.expToAdult,
-      EvolutionStage.adult => null, // 最終進化
-    };
-  }
-
-  /// 進化を実行
-  void evolve() {
-    final monster = state.currentMonster;
-    if (monster == null) return;
-
-    final nextStage = monster.nextStage;
-    if (nextStage == null) {
-      // 最終進化完了 → おともだちに追加して新しい卵を生成
-      _completeFriend();
-      return;
-    }
-
-    // 卵から孵化する場合、ランダムなモンスターを決定
-    Monster evolvedMonster;
-    if (monster.isEgg) {
-      evolvedMonster = _hatchEgg();
-    } else {
-      // 既存モンスターの進化
-      evolvedMonster = monster.copyWith(
-        stage: nextStage,
-        expProductionRate: _calculateExpRate(nextStage, monster.rarity),
-      );
-    }
-
-    // 図鑑に登録
+    // 3. 図鑑更新
     final discoveredIds = List<int>.from(state.discoveredMonsterIds);
-    if (!discoveredIds.contains(evolvedMonster.id)) {
-      discoveredIds.add(evolvedMonster.id);
+    if (!discoveredIds.contains(newMonster.id)) {
+      discoveredIds.add(newMonster.id);
     }
 
+    // 4. 新しい卵をセット (ダメージリセット)
     state = state.copyWith(
-      currentExp: 0.0, // EXPリセット
-      currentMonster: evolvedMonster,
+      currentExp: 0.0,
+      currentMonster: _createNewEgg(),
+      friends: updatedFriends,
       discoveredMonsterIds: discoveredIds,
     );
   }
 
-  /// 卵を孵化させてランダムなモンスターを生成
-  Monster _hatchEgg() {
-    // ランダムなモンスターIDを選択（1-totalMonstersの範囲で）
+  /// ガチャ確率に基づいてランダムなモンスターを生成
+  Monster _generateRandomMonster() {
     final monsterId = _random.nextInt(GenAssets.totalMonsters) + 1;
-
-    // レアリティを決定（加重ランダム）
     final rarity = _determineRarity();
-
-    // モンスター名を生成（後で本格的な名前リストに置き換え）
     final name = _generateMonsterName(monsterId, rarity);
 
     return Monster(
       id: monsterId,
       name: name,
-      stage: EvolutionStage.baby,
+      stage: EvolutionStage.baby, // 初期はBaby
       rarity: rarity,
-      expProductionRate: _calculateExpRate(EvolutionStage.baby, rarity),
-      attackPower: _calculateAttackPower(EvolutionStage.baby, rarity), // 攻撃力も設定
+      expProductionRate: 0, // 未使用
+      attackPower: _calculateAttackPower(EvolutionStage.baby, rarity),
+      accumulatedSteps: 0,
       isDiscovered: true,
       obtainedAt: DateTime.now(),
       description: '奇跡的に生まれた、${AppTheme.getRarityName(rarity)}ランクのモンスター。',
@@ -259,25 +220,6 @@ class GameNotifier extends Notifier<PlayerStats> {
     return basePower * rarity;
   }
 
-  /// おともだち追加完了処理
-  void _completeFriend() {
-    final monster = state.currentMonster;
-    if (monster == null) return;
-
-    // おともだちリストに追加
-    final friends = List<Monster>.from(state.friends);
-    friends.add(monster);
-
-    // 新しい卵を生成
-    final newEgg = _createNewEgg();
-
-    state = state.copyWith(
-      currentExp: 0.0,
-      currentMonster: newEgg,
-      friends: friends,
-    );
-  }
-
   /// 新しい卵を生成
   Monster _createNewEgg() {
     return const Monster(
@@ -285,6 +227,30 @@ class GameNotifier extends Notifier<PlayerStats> {
       name: 'たまご',
       stage: EvolutionStage.egg,
     );
+  }
+
+  /// 卵にダメージを加算
+  void _addDamageToEgg(double amount) {
+    if (state.currentMonster == null) return;
+
+    final newDamage = state.currentExp + amount;
+    final hatchThreshold = _getHatchThreshold();
+
+    if (newDamage >= hatchThreshold) {
+      _hatchEgg();
+    } else {
+      state = state.copyWith(
+        currentExp: newDamage,
+        lastPlayedAt: DateTime.now(),
+      );
+    }
+  }
+
+  /// 卵の孵化に必要なHP
+  double _getHatchThreshold() {
+    // おともだち数が増えるごとに難易度アップ
+    // 基本HP 100 + (おともだち数 * 500)
+    return 100.0 + (state.friends.length * 500.0);
   }
 
   /// ゲームデータをリセット（デバッグ用）

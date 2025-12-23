@@ -41,6 +41,9 @@ class Monster with _$Monster {
     /// 卵を攻撃する力（おともだち効果）
     @Default(1) int attackPower,
 
+    /// 累積歩数（進化に使用）
+    @Default(0) int accumulatedSteps,
+
     /// このモンスターのレアリティ（1-5、5が最もレア）
     @Default(1) int rarity,
 
