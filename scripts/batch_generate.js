@@ -102,7 +102,7 @@ async function run() {
         
         // APIレート制限回避のためのウェイト
         console.log('Waiting for cooldown...');
-        await new Promise(r => setTimeout(r, 5000)); 
+        await new Promise(r => setTimeout(r, 10000)); 
         
       } catch (e) {
         console.error(`Failed to generate ${filename}`);
