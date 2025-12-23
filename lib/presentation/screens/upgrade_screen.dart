@@ -40,7 +40,10 @@ class UpgradeScreen extends ConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('💰', style: TextStyle(fontSize: 32)),
+                  _buildIcon(
+                    'assets/images/ui/icon_gold.png',
+                    Icons.monetization_on_rounded,
+                  ), // Goldアイコンも画像化
                   const SizedBox(width: 12),
                   Text(
                     '${state.gold} G',
@@ -67,7 +70,10 @@ class UpgradeScreen extends ConsumerWidget {
                 children: [
                   _buildUpgradeCard(
                     context: context,
-                    icon: '⚔️',
+                    icon: _buildIcon(
+                      'assets/images/ui/icon_sword.png',
+                      Icons.colorize_rounded,
+                    ),
                     title: 'おともだち攻撃力',
                     description: 'おともだちの攻撃力ボーナスが増加します。\n1Lvごとに+10%',
                     currentLevel: state.attackUpgradeLevel,
@@ -82,7 +88,10 @@ class UpgradeScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   _buildUpgradeCard(
                     context: context,
-                    icon: '👆',
+                    icon: _buildIcon(
+                      'assets/images/ui/icon_tap.png',
+                      Icons.touch_app_rounded,
+                    ),
                     title: 'タップ効率強化',
                     description: 'タップした時の基本経験値が増加します。\n1Lvごとに+5%',
                     currentLevel: state.tapUpgradeLevel,
@@ -97,7 +106,10 @@ class UpgradeScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   _buildBoosterCard(
                     context: context,
-                    icon: '👟',
+                    icon: _buildIcon(
+                      'assets/images/ui/icon_shoes.png',
+                      Icons.directions_run_rounded,
+                    ),
                     title: '歩数ブースト',
                     description: '30分間、歩いた時の経験値が2倍になります。\n重複購入で時間延長可能。',
                     boostEndTime: state.stepBoostEndTime,
@@ -118,9 +130,21 @@ class UpgradeScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildIcon(String path, IconData fallback) {
+    return Image.asset(
+      path,
+      width: 32,
+      height: 32,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) {
+        return Icon(fallback, size: 32, color: AppTheme.primaryColor);
+      },
+    );
+  }
+
   Widget _buildUpgradeCard({
     required BuildContext context,
-    required String icon,
+    required Widget icon,
     required String title,
     required String description,
     required int currentLevel,
@@ -146,7 +170,7 @@ class UpgradeScreen extends ConsumerWidget {
               color: AppTheme.backgroundLight,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Text(icon, style: const TextStyle(fontSize: 32)),
+            child: icon,
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -204,7 +228,7 @@ class UpgradeScreen extends ConsumerWidget {
 
   Widget _buildBoosterCard({
     required BuildContext context,
-    required String icon,
+    required Widget icon,
     required String title,
     required String description,
     required DateTime? boostEndTime,
@@ -248,7 +272,7 @@ class UpgradeScreen extends ConsumerWidget {
               color: AppTheme.backgroundLight,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Text(icon, style: const TextStyle(fontSize: 32)),
+            child: icon,
           ),
           const SizedBox(width: 16),
           Expanded(

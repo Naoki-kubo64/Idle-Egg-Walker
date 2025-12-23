@@ -34,35 +34,41 @@ class StatsPanel extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildStatItem(
-            icon: '👆',
+            icon: const Text('👆', style: TextStyle(fontSize: 24)),
             label: 'タップ',
             value: _formatNumber(stats.totalTaps.toDouble()),
             color: AppTheme.secondaryColor,
           ),
           _buildDivider(),
           _buildStatItem(
-            icon: '💰',
+            icon: Image.asset(
+              'assets/images/ui/icon_gold.png',
+              width: 24,
+              height: 24,
+              errorBuilder:
+                  (c, e, s) => const Text('💰', style: TextStyle(fontSize: 24)),
+            ),
             label: 'Gold',
             value: _formatNumber(stats.gold.toDouble()),
             color: Colors.amber,
           ),
           _buildDivider(),
           _buildStatItem(
-            icon: '👣',
+            icon: const Text('👣', style: TextStyle(fontSize: 24)),
             label: '歩数',
             value: _formatNumber(stats.totalSteps.toDouble()),
             color: AppTheme.accentPink,
           ),
           _buildDivider(),
           _buildStatItem(
-            icon: '🐾',
+            icon: const Text('🐾', style: TextStyle(fontSize: 24)),
             label: 'おとも',
             value: stats.friendCount.toString(),
             color: AppTheme.accentGold,
           ),
           _buildDivider(),
           _buildStatItem(
-            icon: '⚡',
+            icon: const Text('⚡', style: TextStyle(fontSize: 24)),
             label: '/秒',
             value: stats.autoExpPerSecond.toStringAsFixed(1),
             color: AppTheme.accentGold,
@@ -74,7 +80,7 @@ class StatsPanel extends StatelessWidget {
   }
 
   Widget _buildStatItem({
-    required String icon,
+    required Widget icon,
     required String label,
     required String value,
     required Color color,
@@ -83,7 +89,7 @@ class StatsPanel extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(icon, style: const TextStyle(fontSize: 20))
+        icon
             .animate(onPlay: (c) => c.repeat())
             .scale(
               begin: const Offset(1.0, 1.0),

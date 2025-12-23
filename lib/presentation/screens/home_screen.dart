@@ -225,15 +225,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               // ヘルスケアボタン
               IconButton(
                 onPressed: _openHealth,
-                icon: const Icon(Icons.monitor_heart_outlined),
-                color: AppTheme.primaryColor,
+                icon: Image.asset(
+                  'assets/images/ui/icon_health.png',
+                  width: 28,
+                  height: 28,
+                  errorBuilder:
+                      (c, e, s) => const Icon(
+                        Icons.monitor_heart_outlined,
+                        color: AppTheme.primaryColor,
+                      ),
+                ),
                 tooltip: '健康設定',
               ),
               // ショップボタン
               IconButton(
                 onPressed: _openShop,
-                icon: const Icon(Icons.store_rounded),
-                color: AppTheme.accentPink,
+                icon: Image.asset(
+                  'assets/images/ui/icon_shop.png',
+                  width: 28,
+                  height: 28,
+                  errorBuilder:
+                      (c, e, s) => const Icon(
+                        Icons.store_rounded,
+                        color: AppTheme.accentPink,
+                      ),
+                ),
                 tooltip: 'ショップ',
               ),
             ],
