@@ -218,8 +218,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               // 図鑑ボタン
               IconButton(
                 onPressed: _openCollection,
-                icon: const Icon(Icons.menu_book_rounded),
-                color: AppTheme.accentGold,
+                icon: Image.asset(
+                  'assets/images/ui/icon_book.png',
+                  width: 28,
+                  height: 28,
+                  errorBuilder:
+                      (c, e, s) => const Icon(
+                        Icons.menu_book_rounded,
+                        color: AppTheme.accentGold,
+                      ),
+                ),
                 tooltip: '図鑑',
               ),
               // ヘルスケアボタン
