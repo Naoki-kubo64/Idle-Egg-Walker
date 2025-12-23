@@ -115,12 +115,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           // おともだち（背後のモンスターたち）
                           ...List.generate(playerStats.friends.length, (index) {
                             final friend = playerStats.friends[index];
-                            final total = playerStats.friends.length;
-                            final radius = 90.0; // 中心からの距離
-                            // 円形配置（上側を空けて、U字型に配置するイメージ、または全周）
-                            // ここではシンプルに全周配置し、少し回転させる
+
+                            // 配置レイヤー（リング）の計算
+                            const int maxPerRing = 15;
+                            final int ringIndex = index ~/ maxPerRing;
+                            final int indexInRing = index % maxPerRing;
+
+                            // このリングに配置される総数を計算
+                            int countOnLayer = maxPerRing;
+                            final int remaining =
+                                playerStats.friends.length -
+                                (ringIndex * maxPerRing);
+                            if (remaining < maxPerRing) {
+                              countOnLayer = remaining;
+                            }
+
+                            // 半径: 基本90 + リングごとに70追加
+                            final radius = 90.0 + (ringIndex * 70.0);
+
+                            // 角度: リング内の数で等分
                             final angle =
-                                (2 * math.pi * index / math.max(1, total)) -
+                                (2 *
+                                    math.pi *
+                                    indexInRing /
+                                    math.max(1, countOnLayer)) -
                                 (math.pi / 2);
 
                             return Transform.translate(
