@@ -59,6 +59,7 @@ flutter:
     - assets/images/backgrounds/
     - assets/images/effects/
     - assets/images/ui/
+    - assets/audio/
 
   # fonts:
   #   - family: PixelFont

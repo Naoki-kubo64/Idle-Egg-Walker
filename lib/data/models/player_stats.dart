@@ -88,9 +88,23 @@ class PlayerStats with _$PlayerStats {
   }
 
   /// 1秒あたりの自動EXP産出量（おともだちの合計）
+  /// GameNotifier._addAutoExpのロジックと一致させる(攻撃力 * 0.5)
   double get autoExpPerSecond {
     if (friends.isEmpty) return 0.0;
-    return friends.fold(0.0, (sum, monster) => sum + monster.expProductionRate);
+    return totalAttackPower.toDouble() * 0.5;
+  }
+
+  /// 現在の1タップあたりのダメージ量
+  /// (基本値 * タップ倍率) + おともだち総攻撃力
+  double get currentTapPower {
+    // TODO: GameConstants.expPerTapを直参照するか、引数で渡すかだが、
+    // ここではマジックナンバーを避けるため定数と同じ3000.0を使用するか、
+    // GameNotifierと共通化するためにロジックをここに集約すべき。
+    // 今回は整合性を取るため計算式を再現。
+    const double baseExp = 3000.0; // GameConstants.expPerTap
+    final double tapMultiplier = 1.0 + (tapUpgradeLevel - 1) * 0.05;
+
+    return (baseExp * tapMultiplier) + totalAttackPower;
   }
 
   /// おともだちの総攻撃力（タップ時の加算値）

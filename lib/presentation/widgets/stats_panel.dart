@@ -35,9 +35,16 @@ class StatsPanel extends StatelessWidget {
         children: [
           _buildStatItem(
             icon: const Text('👆', style: TextStyle(fontSize: 24)),
-            label: 'タップ',
-            value: _formatNumber(stats.totalTaps.toDouble()),
+            label: 'Tap Power',
+            value: _formatNumber(stats.currentTapPower),
             color: AppTheme.secondaryColor,
+          ),
+          _buildDivider(),
+          _buildStatItem(
+            icon: const Text('⚔️', style: TextStyle(fontSize: 24)),
+            label: 'Atk Power',
+            value: _formatNumber(stats.totalAttackPower.toDouble()),
+            color: Colors.redAccent,
           ),
           _buildDivider(),
           _buildStatItem(
@@ -54,22 +61,8 @@ class StatsPanel extends StatelessWidget {
           ),
           _buildDivider(),
           _buildStatItem(
-            icon: const Text('👣', style: TextStyle(fontSize: 24)),
-            label: '歩数',
-            value: _formatNumber(stats.totalSteps.toDouble()),
-            color: AppTheme.accentPink,
-          ),
-          _buildDivider(),
-          _buildStatItem(
-            icon: const Text('🐾', style: TextStyle(fontSize: 24)),
-            label: 'おとも',
-            value: stats.friendCount.toString(),
-            color: AppTheme.accentGold,
-          ),
-          _buildDivider(),
-          _buildStatItem(
             icon: const Text('⚡', style: TextStyle(fontSize: 24)),
-            label: '/秒',
+            label: 'EPS', // Exp Per Second
             value: stats.autoExpPerSecond.toStringAsFixed(1),
             color: AppTheme.accentGold,
             isHighlighted: true,
