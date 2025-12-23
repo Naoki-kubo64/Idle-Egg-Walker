@@ -104,8 +104,8 @@ class GameNotifier extends Notifier<PlayerStats> {
 
   /// タップ時の処理：卵へのダメージ
   void onTap() {
-    // 卵への基本ダメージ(50) + おともだち総攻撃力
-    final damage = 50.0 + state.totalAttackPower;
+    // 卵への基本ダメージ + おともだち総攻撃力
+    final damage = GameConstants.expPerTap + state.totalAttackPower;
 
     state = state.copyWith(totalTaps: state.totalTaps + 1);
     _addDamageToEgg(damage);
