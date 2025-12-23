@@ -343,9 +343,10 @@ class GameNotifier extends Notifier<PlayerStats> {
 
   /// 卵の孵化に必要なHP
   double _getHatchThreshold() {
-    // おともだち数が増えるごとに難易度アップ
-    // 基本HP (500) + (おともだち数 * 500)
-    return GameConstants.expToHatch + (state.friends.length * 500.0);
+    // おともだち数が増えるごとに難易度アップ (2次関数的増加)
+    // 基本HP (100) + (おともだち数 * 500) + (おともだち数^2 * 20)
+    final count = state.friends.length;
+    return GameConstants.expToHatch + (count * 500.0) + (count * count * 20.0);
   }
 
   /// ゲームデータをリセット（デバッグ用）

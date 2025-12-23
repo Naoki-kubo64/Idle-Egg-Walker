@@ -131,10 +131,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             }
 
                             // 半径（楕円形）: 卵の形に合わせて縦長に、かつ距離を離す
-                            // X軸（横）: 初期110、列間隔30
-                            final radiusX = 110.0 + (ringIndex * 30.0);
-                            // Y軸（縦）: 初期135、列間隔35
-                            final radiusY = 135.0 + (ringIndex * 35.0);
+                            // X軸（横）: 初期110、列間隔34
+                            final radiusX = 110.0 + (ringIndex * 34.0);
+                            // Y軸（縦）: 初期135、列間隔42
+                            final radiusY = 135.0 + (ringIndex * 42.0);
 
                             // 角度: リング内の数で等分
                             final angle =
@@ -239,7 +239,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     return switch (monster.stage) {
       EvolutionStage.egg =>
-        GameConstants.expToHatch + (stats.friends.length * 500.0),
+        GameConstants.expToHatch +
+            (stats.friends.length * 500.0) +
+            (stats.friends.length * stats.friends.length * 20.0),
       EvolutionStage.baby => GameConstants.expToTeen,
       EvolutionStage.teen => GameConstants.expToAdult,
       EvolutionStage.adult => GameConstants.expToAdult, // 最大値を維持
