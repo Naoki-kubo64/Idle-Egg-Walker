@@ -54,6 +54,9 @@ class PlayerStats with _$PlayerStats {
     /// 体重(kg) - カロリー計算用
     @Default(50.0) double weightKg,
 
+    /// 年齢
+    @Default(30) int age,
+
     /// 1日の目標歩数
     @Default(8000) int dailyStepGoal,
 
@@ -108,13 +111,16 @@ class PlayerStats with _$PlayerStats {
   /// 現在育成中かどうか
   bool get isRaising => currentMonster != null;
 
-  /// 消費カロリー計算 (簡易METs法)
-  /// 歩行のMETsを3.0と仮定
-  /// 1歩あたり約0.0007kcal/kgと仮定して計算
+  /// 消費カロリー計算 (距離法)
+  /// 歩数と身体情報から推定
   double get totalCaloriesBurned {
-    // 係数: 0.0008 kcal/step/kg ぐらいが目安 (歩幅70cmの場合)
-    // ここでは少し多めに 0.001 * 体重 * 歩数 とする（ゲーム的満足感のため）
-    const kcalPerStepPerKg = 0.001;
-    return totalSteps * weightKg * kcalPerStepPerKg;
+    // 歩幅(m)の推定 (身長 * 0.45)
+    final strideM = (heightCm * 0.45) / 100.0;
+
+    // 総歩行距離(km)
+    final distanceKm = (totalSteps * strideM) / 1000.0;
+
+    // 消費カロリー (kcal) = 距離(km) * 体重(kg) * 係数(1.05程度)
+    return distanceKm * weightKg * 1.05;
   }
 }

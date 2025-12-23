@@ -14,6 +14,7 @@ import '../widgets/click_effect_overlay.dart';
 import 'dart:math' as math;
 import 'collection_screen.dart';
 import 'upgrade_screen.dart';
+import 'health_screen.dart';
 import '../widgets/friend_monster.dart';
 
 /// メインホーム画面
@@ -221,6 +222,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 color: AppTheme.accentGold,
                 tooltip: '図鑑',
               ),
+              // ヘルスケアボタン
+              IconButton(
+                onPressed: _openHealth,
+                icon: const Icon(Icons.monitor_heart_outlined),
+                color: AppTheme.primaryColor,
+                tooltip: '健康設定',
+              ),
               // ショップボタン
               IconButton(
                 onPressed: _openShop,
@@ -273,6 +281,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const UpgradeScreen()),
+    );
+  }
+
+  /// ヘルスケア画面を開く
+  void _openHealth() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const HealthScreen()),
     );
   }
 }

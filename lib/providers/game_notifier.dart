@@ -150,6 +150,22 @@ class GameNotifier extends Notifier<PlayerStats> {
 
   // === アップグレード関連 ===
 
+  // === プロフィール更新 ===
+  /// 身体情報を更新
+  void updateBodyProfile({
+    double? height,
+    double? weight,
+    int? age,
+    int? dailyGoal,
+  }) {
+    state = state.copyWith(
+      heightCm: height ?? state.heightCm,
+      weightKg: weight ?? state.weightKg,
+      age: age ?? state.age,
+      dailyStepGoal: dailyGoal ?? state.dailyStepGoal,
+    );
+  }
+
   /// 攻撃力アップグレードのコスト計算
   int get attackUpgradeCost {
     // 基本100G, レベルごとに1.8倍 (急上昇)
