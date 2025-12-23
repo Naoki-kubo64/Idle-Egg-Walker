@@ -111,47 +111,16 @@ class _CharacterDisplayState extends State<CharacterDisplay>
     final isEgg = monster?.isEgg ?? true;
 
     return Container(
-      width: 280,
-      height: 280,
-      decoration: BoxDecoration(
+      width: 300,
+      height: 300,
+      decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: _getGlowColor().withValues(alpha: 0.4),
-            blurRadius: 40,
-            spreadRadius: 10,
-          ),
-          BoxShadow(
-            color: _getGlowColor().withValues(alpha: 0.2),
-            blurRadius: 80,
-            spreadRadius: 20,
-          ),
-        ],
+        // オーラ削除
       ),
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // 背景グロー
-          Container(
-                width: 240,
-                height: 240,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      _getGlowColor().withValues(alpha: 0.3),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              )
-              .animate(onPlay: (c) => c.repeat(reverse: true))
-              .scale(
-                begin: const Offset(1.0, 1.0),
-                end: const Offset(1.2, 1.2),
-                duration: 2.seconds,
-                curve: Curves.easeInOut,
-              ),
+          // 背景グロー削除
 
           // キャラクター画像
           _buildCharacterImage(isEgg, monster),
@@ -168,8 +137,8 @@ class _CharacterDisplayState extends State<CharacterDisplay>
     final imagePath = monster?.imagePath ?? GenAssets.eggPath(1);
 
     return Container(
-          width: 200,
-          height: 200,
+          width: 260,
+          height: 260,
           decoration: BoxDecoration(
             // color: AppTheme.surfaceDark, // 画像がある場合は背景色は不要かも
             borderRadius: BorderRadius.circular(20),
