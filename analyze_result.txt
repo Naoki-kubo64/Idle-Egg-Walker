@@ -1,0 +1,34 @@
+﻿Analyzing Egg Walker...                                         
+
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\health_screen.dart:370:15 - prefer_const_constructors
+warning - Unused import: '../../services/log_service.dart' - lib\presentation\screens\home_screen.dart:7:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\upgrade_screen.dart:421:26 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\upgrade_screen.dart:679:32 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\upgrade_screen.dart:685:23 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\upgrade_screen.dart:875:28 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\upgrade_screen.dart:881:19 - prefer_const_constructors
+   info - Statements in an if should be enclosed in a block - lib\presentation\widgets\click_effect_overlay.dart:106:7 - curly_braces_in_flow_control_structures
+   info - Use 'const' with the constructor to improve performance - lib\presentation\widgets\exp_bar.dart:97:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\presentation\widgets\monster_detail_dialog.dart:149:27 - prefer_const_constructors
+   info - The import of 'package:flutter/material.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/foundation.dart' - lib\services\ad_service.dart:5:8 - unnecessary_import
+   info - 'purchasePackage' is deprecated and shouldn't be used. Use purchase(PurchaseParams) - lib\services\purchase_service.dart:75:31 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance - lib\services\sound_manager.dart:37:18 - prefer_const_constructors
+
+flutter : 13 issues fo
+und. (ran in 2.3s)
+発生場所 行:1 文字:1
++ flutter analyze 2>&1
+ | Out-File -Encoding 
+utf8 analyze_result.tx
+t
++ ~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo    
+          : NotSpecifi
+ed    : (13 issues fou
+nd.     (ran in 2.3s):
+Stri    ng) [], Remote
+Excep    tion
+    + FullyQualifiedEr
+r    orId : NativeComm
+an    dError
+ 

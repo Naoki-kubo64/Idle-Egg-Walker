@@ -4,7 +4,7 @@ class GameConstants {
 
   // === EXP関連 ===
   /// タップ1回あたりのEXP
-  static const double expPerTap = 3000.0;
+  static const double expPerTap = 1.0;
 
   /// 歩数1歩あたりのEXP
   static const double expPerStep = 10.0;

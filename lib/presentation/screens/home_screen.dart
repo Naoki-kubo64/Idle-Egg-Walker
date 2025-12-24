@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/constants/game_constants.dart';
+import '../../services/sound_manager.dart';
+import '../../services/log_service.dart';
 import '../../providers/game_notifier.dart';
 import '../../data/models/monster.dart';
 import '../../data/models/player_stats.dart';
@@ -11,12 +13,14 @@ import '../widgets/exp_bar.dart';
 import '../widgets/stats_panel.dart';
 import '../widgets/particle_effect.dart';
 import '../widgets/click_effect_overlay.dart';
+import '../widgets/banner_ad_widget.dart';
 import 'dart:math' as math;
 import 'collection_screen.dart';
 import 'upgrade_screen.dart';
 import 'health_screen.dart';
+import 'settings_screen.dart';
 import '../widgets/friend_monster.dart';
-import '../widgets/welcome_dialog.dart'; // 追加
+import '../widgets/welcome_dialog.dart';
 
 /// メインホーム画面
 class HomeScreen extends ConsumerStatefulWidget {
@@ -71,6 +75,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     ]).animate(_pokeController);
 
     _pokeController.repeat();
+
+    // 起動時の「おかえり」チェック
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _checkBackgroundProgress();
+    });
   }
 
   @override
@@ -84,27 +93,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      SoundManager().playBgm();
       _checkBackgroundProgress();
+    } else if (state == AppLifecycleState.paused) {
+      SoundManager().stopBgm();
+      ref.read(gameProvider.notifier).onAppPause();
     }
   }
 
   /// バックグラウンド復帰時の処理
   Future<void> _checkBackgroundProgress() async {
+    debugPrint('Checking background progress...');
     // 詳細（歩数とEXP）を取得
     final result = await ref.read(gameProvider.notifier).syncAndGetDetails();
     final steps = (result['steps'] as num).toInt();
-    final exp = (result['exp'] as num).toInt();
+    final stepExp = (result['stepExp'] as num).toInt();
+    final timeExp = (result['timeExp'] as num).toInt();
+    final totalExp = (result['exp'] as num).toInt();
 
-    if ((steps > 0 || exp > 0) && mounted) {
-      _showWelcomeBackDialog(steps, exp);
+    debugPrint(
+      'Background Result: Steps=$steps, StepExp=$stepExp, TimeExp=$timeExp',
+    );
+
+    if ((steps > 0 || totalExp > 0) && mounted) {
+      debugPrint('Showing Welcome Back Dialog');
+      _showWelcomeBackDialog(steps, stepExp, timeExp);
+    } else {
+      debugPrint('No progress to show.');
     }
   }
 
   /// おかえりダイアログ表示
-  void _showWelcomeBackDialog(int steps, int exp) {
+  void _showWelcomeBackDialog(int steps, int stepExp, int timeExp) {
     showDialog(
       context: context,
-      builder: (context) => WelcomeBackDialog(steps: steps, exp: exp),
+      builder:
+          (context) => WelcomeBackDialog(
+            steps: steps,
+            stepExp: stepExp,
+            timeExp: timeExp,
+          ),
     );
   }
 
@@ -115,121 +143,137 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     return Scaffold(
       backgroundColor: Colors.transparent, // 背景画像を透過させる
-      body: ClickEffectOverlay(
-        key: _clickEffectKey,
-        enableTouch: false, // キャラクタータップのみに反応させたい場合はfalse
-        child: Container(
-          // 背景はMainScreenで設定するため、ここは透明
-          child: SafeArea(
-            child: Stack(
-              children: [
-                // 背景パーティクル
-                const ParticleEffect(),
-
-                // メインコンテンツ
-                Column(
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: ClickEffectOverlay(
+                key: _clickEffectKey,
+                enableTouch: false,
+                child: Stack(
                   children: [
-                    // ヘッダー
-                    _buildHeader(playerStats),
+                    // 背景パーティクル
+                    const ParticleEffect(),
 
-                    const SizedBox(height: 16),
+                    // メインコンテンツ
+                    Column(
+                      children: [
+                        // ヘッダー
+                        _buildHeader(playerStats),
 
-                    // EXPバー
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: ExpBar(
-                        currentExp: playerStats.currentExp,
-                        maxExp: _getNextEvolutionExp(
-                          currentMonster,
-                          playerStats,
+                        const SizedBox(height: 16),
+
+                        // EXPバー
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: ExpBar(
+                            currentExp: playerStats.currentExp,
+                            maxExp: _getNextEvolutionExp(
+                              currentMonster,
+                              playerStats,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
 
-                    // キャラクタと友達表示エリア
-                    Expanded(
-                      child: Stack(
-                        alignment: Alignment.center,
-                        clipBehavior: Clip.none,
-                        children: [
-                          ...List.generate(playerStats.friends.length, (index) {
-                            final friend = playerStats.friends[index];
+                        // キャラクタと友達表示エリア
+                        Expanded(
+                          child: Stack(
+                            alignment: Alignment.center,
+                            clipBehavior: Clip.none,
+                            children: [
+                              // おともだち (Floating)
+                              ...List.generate(playerStats.friends.length, (
+                                index,
+                              ) {
+                                final friend = playerStats.friends[index];
 
-                            // 配置レイヤー（リング）の計算
-                            const int maxPerRing = 15;
-                            final int ringIndex = index ~/ maxPerRing;
-                            final int indexInRing = index % maxPerRing;
+                                // 配置レイヤー（リング）の計算
+                                const int maxPerRing = 15;
+                                final int ringIndex = index ~/ maxPerRing;
+                                final int indexInRing = index % maxPerRing;
 
-                            // このリングに配置される総数を計算
-                            int countOnLayer = maxPerRing;
-                            final int remaining =
-                                playerStats.friends.length -
-                                (ringIndex * maxPerRing);
-                            if (remaining < maxPerRing) {
-                              countOnLayer = remaining;
-                            }
+                                // このリングに配置される総数を計算
+                                int countOnLayer = maxPerRing;
+                                final int remaining =
+                                    playerStats.friends.length -
+                                    (ringIndex * maxPerRing);
+                                if (remaining < maxPerRing) {
+                                  countOnLayer = remaining;
+                                }
 
-                            // 角度: リング内の数で等分
-                            final angle =
-                                (2 *
-                                    math.pi *
-                                    indexInRing /
-                                    math.max(1, countOnLayer)) -
-                                (math.pi / 2);
+                                // 角度: リング内の数で等分
+                                final angle =
+                                    (2 *
+                                        math.pi *
+                                        indexInRing /
+                                        math.max(1, countOnLayer)) -
+                                    (math.pi / 2);
 
-                            return AnimatedBuilder(
-                              animation: _pokeAnimation,
-                              builder: (context, child) {
-                                // つつきオフセット: アニメーション値(0~1) * 25px 分だけ中心に寄る
-                                final pokeOffset = _pokeAnimation.value * 25.0;
+                                return AnimatedBuilder(
+                                  animation: _pokeAnimation,
+                                  builder: (context, child) {
+                                    // つつきオフセット: アニメーション値(0~1) * 25px 分だけ中心に寄る
+                                    final pokeOffset =
+                                        _pokeAnimation.value * 25.0;
 
-                                // X軸（横）: 初期100 - poke
-                                final radiusX =
-                                    (100.0 + (ringIndex * 34.0)) - pokeOffset;
-                                // Y軸（縦）: 初期120 - poke
-                                final radiusY =
-                                    (120.0 + (ringIndex * 42.0)) - pokeOffset;
+                                    // X軸（横）: 初期100 - poke
+                                    final radiusX =
+                                        (100.0 + (ringIndex * 34.0)) -
+                                        pokeOffset;
+                                    // Y軸（縦）: 初期120 - poke
+                                    final radiusY =
+                                        (120.0 + (ringIndex * 42.0)) -
+                                        pokeOffset;
 
-                                return Transform.translate(
-                                  offset: Offset(
-                                    radiusX * math.cos(angle),
-                                    radiusY * math.sin(angle) + 20,
+                                    return Transform.translate(
+                                      offset: Offset(
+                                        radiusX * math.cos(angle),
+                                        radiusY * math.sin(angle) + 20,
+                                      ),
+                                      child: child,
+                                    );
+                                  },
+                                  child: FriendMonster(
+                                    monster: friend,
+                                    onTap: () {
+                                      // おともだちをタップした時の反応（必要なら）
+                                    },
                                   ),
-                                  child: child,
                                 );
-                              },
-                              child: FriendMonster(
-                                monster: friend,
-                                onTap: () {
-                                  // おともだちをタップした時の反応（必要なら）
+                              }),
+
+                              // メインキャラクター（卵など）
+                              CharacterDisplay(
+                                monster: currentMonster,
+                                currentExp: playerStats.currentExp,
+                                maxExp: _getNextEvolutionExp(
+                                  currentMonster,
+                                  playerStats,
+                                ),
+                                onTapDown: (details) {
+                                  _onCharacterTap(details.globalPosition);
                                 },
                               ),
-                            );
-                          }),
-
-                          // メインキャラクター（卵など）
-                          CharacterDisplay(
-                            monster: currentMonster,
-                            onTapDown: (details) {
-                              _onCharacterTap(details.globalPosition);
-                            },
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
+                        ),
 
-                    // 統計パネル
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: StatsPanel(stats: playerStats),
-                    ),
+                        // 統計パネル
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: StatsPanel(stats: playerStats),
+                        ),
 
-                    const SizedBox(height: 24),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
+            // バナー広告
+            const BannerAdWidget(),
+          ],
         ),
       ),
     );
@@ -238,27 +282,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// ヘッダーを構築
   Widget _buildHeader(playerStats) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.only(top: 24, right: 16, bottom: 8, left: 16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          // タイトル
-          Text(
-                'Egg Walker',
-                style: AppTheme.headlineMedium.copyWith(
-                  foreground:
-                      Paint()
-                        ..shader = AppTheme.primaryGradient.createShader(
-                          const Rect.fromLTWH(0, 0, 200, 40),
-                        ),
-                ),
-              )
-              .animate(onPlay: (controller) => controller.repeat())
-              .shimmer(
-                duration: 3.seconds,
-                color: AppTheme.secondaryColor.withValues(alpha: 0.3),
-              ),
-
           // 右側アクションボタン
           Row(
             children: [
@@ -267,8 +294,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 onPressed: _openCollection,
                 icon: Image.asset(
                   'assets/images/ui/icon_book.png',
-                  width: 28,
-                  height: 28,
+                  width: 42,
+                  height: 42,
                   errorBuilder:
                       (c, e, s) => const Icon(
                         Icons.menu_book_rounded,
@@ -282,8 +309,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 onPressed: _openHealth,
                 icon: Image.asset(
                   'assets/images/ui/icon_health.png',
-                  width: 28,
-                  height: 28,
+                  width: 52,
+                  height: 52,
                   errorBuilder:
                       (c, e, s) => const Icon(
                         Icons.monitor_heart_outlined,
@@ -297,8 +324,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 onPressed: _openShop,
                 icon: Image.asset(
                   'assets/images/ui/icon_shop.png',
-                  width: 28,
-                  height: 28,
+                  width: 52,
+                  height: 52,
                   errorBuilder:
                       (c, e, s) => const Icon(
                         Icons.store_rounded,
@@ -306,6 +333,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ),
                 ),
                 tooltip: 'ショップ',
+              ),
+              // 設定ボタン
+              IconButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsScreen(),
+                    ),
+                  );
+                },
+                icon: Image.asset(
+                  'assets/images/ui/icon_settings.png',
+                  width: 52,
+                  height: 52,
+                  errorBuilder:
+                      (c, e, s) => const Icon(
+                        Icons.settings,
+                        color: AppTheme.textPrimary,
+                      ),
+                ),
+                tooltip: '設定',
               ),
             ],
           ),
@@ -333,9 +382,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void _onCharacterTap(Offset globalPosition) {
     ref.read(gameProvider.notifier).onTap();
     // クリックエフェクトを表示
+    final currentStats = ref.read(gameProvider);
     _clickEffectKey.currentState?.addEffect(
       globalPosition,
-      exp: GameConstants.expPerTap.toInt(),
+      exp: currentStats.currentTapPower.toInt(),
     );
   }
 
@@ -360,78 +410,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const HealthScreen()),
-    );
-  }
-}
-
-/// おかえりダイアログ
-class _WelcomeBackDialog extends StatelessWidget {
-  final int expGained;
-
-  const _WelcomeBackDialog({required this.expGained});
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child:
-          Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceDark,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppTheme.accentGold, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.accentGold.withValues(alpha: 0.3),
-                      blurRadius: 20,
-                      spreadRadius: 5,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'おかえりなさい！',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      '留守のあいだに...',
-                      style: TextStyle(color: AppTheme.textSecondary),
-                    ),
-                    const SizedBox(height: 8),
-                    TweenAnimationBuilder<int>(
-                      tween: IntTween(begin: 0, end: expGained),
-                      duration: const Duration(seconds: 2),
-                      builder: (context, value, child) {
-                        return Text(
-                          '+$value EXP',
-                          style: AppTheme.expStyle.copyWith(fontSize: 32),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'を獲得しました！',
-                      style: TextStyle(color: AppTheme.textSecondary),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              )
-              .animate()
-              .scale(duration: 300.ms, curve: Curves.easeOutBack)
-              .fadeIn(),
     );
   }
 }

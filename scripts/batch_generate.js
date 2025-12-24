@@ -73,42 +73,33 @@ const OUT_DIR = path.resolve(__dirname, '../assets/images/monsters');
 async function run() {
   // ディレクトリ確認
   if (!fs.existsSync(OUT_DIR)) {
-    console.error(`Directory not found: ${OUT_DIR}`);
-    process.exit(1);
+    fs.mkdirSync(OUT_DIR, { recursive: true });
   }
+
+  const promptListFile = path.join(__dirname, 'prompts_for_nanobanana.txt');
+  let promptContent = "Filename, Prompt\n";
+
+  console.log(`\n=== Generating Prompts for Nano Banana ===`);
+  console.log(`Output: ${promptListFile}\n`);
+
+  let count = 0;
 
   for (const monster of MONSTERS) {
-    console.log(`\n=== Generating Monster ID ${monster.id}: ${monster.name} ===`);
-    
     for (const stage of STAGES) {
       const filename = `monster_${monster.id.toString().padStart(3, '0')}_${stage.suffix}.png`;
-      const outputPath = path.join(OUT_DIR, filename);
       
-      // 画像が存在する場合はスキップ（重要）
-      if (fs.existsSync(outputPath)) {
-        console.log(`Skipping ${filename} (already exists)`);
-        continue;
-      }
-
       // プロンプト構築
+      // Nano Banana向けに少し調整（必要であれば）
       const prompt = `${monster.theme}, ${stage.promptExtra}, ${BASE_STYLE}`;
       
-      console.log(`Generating ${stage.suffix}...`);
-      
-      try {
-        // generate_image.mjs を実行
-        const cmd = `node scripts/generate_image.mjs "${prompt}" "${outputPath}"`;
-        execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
-        
-        // APIレート制限回避のためのウェイト
-        console.log('Waiting for cooldown...');
-        await new Promise(r => setTimeout(r, 10000)); 
-        
-      } catch (e) {
-        console.error(`Failed to generate ${filename}`);
-      }
+      promptContent += `${filename}, "${prompt}"\n`;
+      count++;
     }
   }
+
+  fs.writeFileSync(promptListFile, promptContent);
+  console.log(`Successfully generated ${count} prompts.`);
+  console.log(`You can now import or paste these prompts into Nano Banana.`);
 }
 
 run();

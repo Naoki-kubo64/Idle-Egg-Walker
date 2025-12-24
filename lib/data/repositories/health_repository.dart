@@ -1,7 +1,9 @@
-import 'package:flutter/foundation.dart' show kIsWeb; // 追加
+import 'package:flutter/foundation.dart';
+import '../../services/log_service.dart';
+
 import 'dart:io';
 import 'package:health/health.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// ヘルスケアデータ（歩数）を管理するリポジトリ
@@ -12,7 +14,12 @@ class HealthRepository {
   final Health _health = Health();
 
   // 取得したいデータタイプ
-  static const List<HealthDataType> _types = [HealthDataType.STEPS];
+  // AndroidではHealth Connect (READ_STEPS) と、
+  // Legacy Google Fit (STEPS) の両方が考慮される場合がある
+  static const List<HealthDataType> _types = [
+    HealthDataType.STEPS,
+    // HealthDataType.TOTAL_CALORIES_BURNED, // 一旦外してStepのみに集中
+  ];
 
   /// ヘルスケアへのアクセス権限をリクエスト
   Future<bool> requestPermissions() async {
@@ -21,18 +28,56 @@ class HealthRepository {
 
     // Android 10以上の場合の追加権限チェック
     if (Platform.isAndroid) {
-      final activityPerm = await Permission.activityRecognition.request();
-      if (!activityPerm.isGranted) return false;
+      final activityPerm = await ph.Permission.activityRecognition.request();
+      if (!activityPerm.isGranted) {
+        appLog('Activity Recognition Permission Denied');
+        return false;
+      }
     }
 
     try {
-      // 権限リクエスト
-      bool requested = await _health.requestAuthorization(_types);
+      // Health Connectの設定 (Android)
+      // READ_WRITE 両方を要求してみる（ダイアログ表示のトリガーを確実にするため）
+      bool requested = await _health.requestAuthorization(
+        [HealthDataType.STEPS],
+        permissions: [HealthDataAccess.READ_WRITE],
+      );
+      appLog('Health Authorization Requested: Result=$requested');
       return requested;
     } catch (e) {
-      // エラーハンドリング（シミュレーターなど）
+      appLog('Health Auth Error: $e');
       return false;
     }
+  }
+
+  /// アプリ設定画面を開く (権限が永続的に拒否されている場合など)
+  Future<bool> openDeviceSettings() async {
+    return await ph.openAppSettings();
+  }
+
+  /// 権限が許可されているか確認
+  Future<bool> hasPermissions() async {
+    if (kIsWeb) return false;
+
+    if (Platform.isAndroid) {
+      // SDK Check
+      final status = await getHealthConnectSdkStatus();
+      if (status != HealthConnectSdkStatus.sdkAvailable) {
+        appLog('Health Connect SDK not available: $status');
+        return false;
+      }
+
+      // Activity Recognition Check
+      final activityStatus = await ph.Permission.activityRecognition.status;
+      if (!activityStatus.isGranted) {
+        appLog('Activity Recognition not granted: $activityStatus');
+        return false;
+      }
+    }
+
+    final has = await _health.hasPermissions(_types) ?? false;
+    appLog('Health hasPermissions check: $has (Types: $_types)');
+    return has;
   }
 
   /// 指定された期間の合計歩数を取得
@@ -43,18 +88,25 @@ class HealthRepository {
     if (kIsWeb) return 0;
 
     try {
-      // 権限がない場合は0を返す
-      // ignore: unused_local_variable
+      // 権限確認
       bool hasPermission = await _health.hasPermissions(_types) ?? false;
+      if (!hasPermission) {
+        appLog('Health: No Permission');
+        // 権限がない場合でも、実際にリクエストして確認する手もあるが、
+        // ここでは0を返す
+        return 0;
+      }
 
-      // 注意: hasPermissionsは信頼性が低い場合があるため、
-      // 実際にデータを取得してみて例外が出ないかで判断することも多いが、
-      // ここでは簡易的にgetTotalStepsInIntervalを使用
-
+      // getTotalStepsInIntervalは便利だが、うまく動作しない場合があるため
+      // 生データを取得して自分で計算する方法に切り替えることも検討
+      // まずは getTotalStepsInInterval を試す
       int? steps = await _health.getTotalStepsInInterval(start, end);
+
+      appLog('Health: Steps from $start to $end = $steps');
+
       return steps ?? 0;
     } catch (e) {
-      // 取得失敗時
+      appLog('Health: Error fetching steps: $e');
       return 0;
     }
   }
@@ -91,6 +143,22 @@ class HealthRepository {
     }
 
     return steps;
+  }
+
+  /// Health Connectのインストール
+  Future<void> installHealthConnect() async {
+    await _health.installHealthConnect();
+  }
+
+  /// Health Connect SDKの状態確認
+  Future<HealthConnectSdkStatus?> getHealthConnectSdkStatus() async {
+    if (!Platform.isAndroid) return null;
+    try {
+      return await _health.getHealthConnectSdkStatus();
+    } catch (e) {
+      appLog('Health Status Check Error: $e');
+      return HealthConnectSdkStatus.sdkUnavailable;
+    }
   }
 
   /// 最終同期時刻を保存

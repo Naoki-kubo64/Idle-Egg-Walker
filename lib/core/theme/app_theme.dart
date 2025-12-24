@@ -10,6 +10,7 @@ class AppTheme {
   static const Color secondaryColor = Color(0xFFFFD166); // タンポポ色（アクセント）
   static const Color accentGold = Color(0xFFFFB627); // 蜂蜜色（EXP）
   static const Color accentPink = Color(0xFFFF8B94); // 桃色（ハートなど）
+  static const Color accentGreen = Color(0xFF4CAF50); // 緑色（成功など）
 
   static const Color backgroundLight = Color(0xFFF0F7E6); // 非常に薄い緑（昼）
   static const Color surfaceCream = Color(0xFFFFFDF5); // クリーム色（カード）

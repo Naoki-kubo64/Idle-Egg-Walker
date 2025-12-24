@@ -10,9 +10,17 @@ import '../../core/constants/gen_assets.dart';
 /// タップ時: ぷるんと弾むアニメーション
 class CharacterDisplay extends StatefulWidget {
   final Monster? monster;
-  final void Function(TapDownDetails)? onTapDown; // 変更
+  final void Function(TapDownDetails)? onTapDown;
+  final double? currentExp;
+  final double? maxExp;
 
-  const CharacterDisplay({super.key, this.monster, this.onTapDown});
+  const CharacterDisplay({
+    super.key,
+    this.monster,
+    this.onTapDown,
+    this.currentExp,
+    this.maxExp,
+  });
 
   @override
   State<CharacterDisplay> createState() => _CharacterDisplayState();
@@ -129,7 +137,19 @@ class _CharacterDisplayState extends State<CharacterDisplay>
   }
 
   Widget _buildCharacterImage(bool isEgg, Monster? monster) {
-    final imagePath = monster?.imagePath ?? GenAssets.eggPath(1);
+    String imagePath;
+    if (isEgg) {
+      // 卵の場合は進捗に応じて画像を変更
+      double progress = 0.0;
+      if (widget.currentExp != null &&
+          widget.maxExp != null &&
+          widget.maxExp! > 0) {
+        progress = (widget.currentExp! / widget.maxExp!).clamp(0.0, 1.0);
+      }
+      imagePath = GenAssets.getEggImage(progress);
+    } else {
+      imagePath = monster?.imagePath ?? GenAssets.eggPath(1);
+    }
 
     return Container(
           width: 260,
@@ -247,13 +267,5 @@ class _CharacterDisplayState extends State<CharacterDisplay>
         ),
       ),
     ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.3, duration: 300.ms);
-  }
-
-  Color _getGlowColor() {
-    final monster = widget.monster;
-    if (monster == null || monster.isEgg) {
-      return AppTheme.accentGold;
-    }
-    return AppTheme.getRarityColor(monster.rarity);
   }
 }

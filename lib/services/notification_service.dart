@@ -38,4 +38,11 @@ class NotificationService {
   Future<void> cancelNotification(int id) async {
     debugPrint('NotificationService (Web Stub): Cancel $id');
   }
+
+  /// 歩数ブースト終了の通知をスケジュール（スタブ）
+  Future<void> scheduleBoostEndNotification(DateTime endTime) async {
+    debugPrint(
+      'NotificationService (Web Stub): Schedule boost notification at $endTime',
+    );
+  }
 }

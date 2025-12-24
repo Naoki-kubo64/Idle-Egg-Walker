@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:egg_walker/gen/app_localizations.dart';
 
 import 'presentation/screens/main_screen.dart';
 import 'core/theme/app_theme.dart';
@@ -14,7 +16,7 @@ void main() async {
   await NotificationService().requestPermissions();
 
   await SoundManager().init();
-  // SoundManager().playBgm(); // Webの自動再生ポリシーによりここでは再生せず、初回タップ時に再生する
+  SoundManager().playBgm(); // 起動時にBGM再生を試みる
 
   runApp(const ProviderScope(child: EggWalkerApp()));
 }
@@ -33,6 +35,16 @@ class _EggWalkerAppState extends ConsumerState<EggWalkerApp> {
       title: 'Egg Walker',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.warmTheme,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ja'), // 日本語
+        Locale('en'), // 英語
+      ],
       home: const MainScreen(),
     );
   }

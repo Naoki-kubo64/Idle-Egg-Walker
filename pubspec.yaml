@@ -10,40 +10,30 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-
-  # State Management
   flutter_riverpod: ^2.6.1
   riverpod_annotation: ^2.6.1
-
-  # Data Model
   freezed_annotation: ^2.4.4
   json_annotation: ^4.9.0
-
-  # Animation
   flutter_animate: ^4.5.2
-
-  # Storage
-  shared_preferences: ^2.3.4
-
-  # Health Integration
-  health: ^11.1.0
-  permission_handler: ^11.3.1
-
-  # UI
-  google_fonts: ^6.2.1
-
-  # Image Processing
-  image: ^4.1.7
+  shared_preferences: ^2.5.4
+  health: ^13.2.1
+  permission_handler: ^12.0.1
+  google_fonts: ^6.3.3
+  image: ^4.7.2
   audioplayers: ^6.5.1
   flutter_local_notifications: ^19.5.0
   timezone: ^0.10.1
-
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+  purchases_flutter: ^9.10.1
+  purchases_ui_flutter: ^9.10.1
+  google_mobile_ads: ^7.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
 
-  # Code Generation
   build_runner: ^2.4.14
   freezed: ^2.5.7
   json_serializable: ^6.9.0
@@ -51,6 +41,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
 
   assets:
     - assets/images/

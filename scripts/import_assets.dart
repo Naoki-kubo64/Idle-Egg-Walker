@@ -66,7 +66,7 @@ void main() async {
       break;
     case '4':
       targetDir = 'assets/images/egg';
-      targetFileName = 'egg_${paddedId}.png';
+      targetFileName = 'egg_$paddedId.png';
       break;
     default:
       print('❌ エラー: 正しいタイプを選択してください。');

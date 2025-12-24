@@ -1,52 +1,97 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/monster_data.dart';
 import '../../data/models/monster.dart';
 import '../../data/models/player_stats.dart';
 import '../../data/repositories/health_repository.dart';
+import 'package:health/health.dart';
 import '../../core/constants/game_constants.dart';
-import '../../core/constants/gen_assets.dart';
-import '../../core/theme/app_theme.dart';
-import '../../services/sound_manager.dart'; // 追加
-import '../../services/notification_service.dart'; // 追加
+
+import '../../services/sound_manager.dart';
+import '../../services/notification_service.dart';
+import '../../data/repositories/storage_repository.dart';
+import '../../services/ad_service.dart';
+import '../../services/purchase_service.dart';
 
 /// ゲーム状態を管理するNotifier
 class GameNotifier extends Notifier<PlayerStats> {
   Timer? _autoExpTimer;
+  Timer? _autoSaveTimer; // オートセーブ用タイマー
   final Random _random = Random();
   final HealthRepository _healthRepository = HealthRepository();
+  final StorageRepository _storageRepository = StorageRepository();
+  final AdService _adService = AdService();
+  final PurchaseService _purchaseService = PurchaseService();
+  bool isPro = false; // Pro Subscription Status
 
   @override
   PlayerStats build() {
     // dispose時にタイマーをキャンセル
     ref.onDispose(() {
       _autoExpTimer?.cancel();
+      _autoSaveTimer?.cancel();
+      // 終了時に保存
+      _storageRepository.savePlayerStats(state);
     });
 
-    // 初期状態：新しい卵を持った状態でスタート
+    // 初期状態：新しい卵を持った状態でスタート（ロード完了までの一時的な状態）
     final initialEgg = _createNewEgg();
 
-    // 自動EXP獲得タイマーを開始
-    _startAutoExpTimer();
-
-    // ヘルスケア連携初期化（非同期で実行）
-    _initHealth();
+    // データのロードを開始
+    _loadData(initialEgg);
 
     return PlayerStats(
       currentMonster: initialEgg,
       gameStartedAt: DateTime.now(),
       lastPlayedAt: DateTime.now(),
-      // 開発用の初期データ（図鑑テスト用）
       discoveredMonsterIds: [],
     );
   }
+
+  /// 保存されたデータをロードし、なければ初期化処理を行う
+  Future<void> _loadData(Monster initialEgg) async {
+    final loadedStats = await _storageRepository.loadPlayerStats();
+
+    if (loadedStats != null) {
+      // 基本的なロード
+      state = loadedStats;
+      // 最終プレイ時刻からの経過時間を計算して加算
+      _calculateOfflineDamage();
+    } else {
+      // 初回起動時の初期化
+      _initHealth();
+    }
+
+    // Pro entitlement check
+    isPro = await _purchaseService.isProUser();
+
+    // Start timers
+    _startTimers();
+  }
+
+  void _startTimers() {
+    _startAutoExpTimer();
+    _startAutoSaveTimer();
+  }
+
+  void _startAutoSaveTimer() {
+    _autoSaveTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      _save();
+    });
+  }
+
+  Future<void> _save() async {
+    await _storageRepository.savePlayerStats(state);
+  }
+
+  // 既存メソッド...
 
   Future<void> _initHealth() async {
     // 権限リクエスト
     await _healthRepository.requestPermissions();
     // 起動時の同期（歩数＆時間経過）
     await syncSteps();
-    _calculateOfflineDamage();
   }
 
   /// アプリ復帰時に呼び出されるメソッド
@@ -61,7 +106,12 @@ class GameNotifier extends Notifier<PlayerStats> {
 
     final timeExp = _calculateOfflineDamage();
 
-    return {'steps': steps, 'exp': stepExp + timeExp};
+    return {
+      'steps': steps,
+      'stepExp': stepExp,
+      'timeExp': timeExp,
+      'exp': stepExp + timeExp,
+    };
   }
 
   /// onAppResumeは後方互換性のため残すが、syncAndGetDetailsを使う推奨
@@ -78,6 +128,11 @@ class GameNotifier extends Notifier<PlayerStats> {
       return addSteps(steps);
     }
     return 0.0;
+  }
+
+  /// アプリ一時停止（バックグラウンド移行）時に保存
+  Future<void> onAppPause() async {
+    await _save();
   }
 
   /// 放置時間（オフライン）分のダメージを計算・加算
@@ -154,9 +209,15 @@ class GameNotifier extends Notifier<PlayerStats> {
     // UI表示用に歩数Expを加算
     final expFromSteps = steps * GameConstants.expPerStep * multiplier;
 
+    // 日別履歴の更新
+    final todayKey = now.toIso8601String().split('T')[0];
+    final currentHistory = Map<String, int>.from(state.dailyStepsHistory);
+    currentHistory[todayKey] = (currentHistory[todayKey] ?? 0) + steps;
+
     state = state.copyWith(
       totalSteps: state.totalSteps + steps,
       lastStepSync: now,
+      dailyStepsHistory: currentHistory,
     );
 
     // 歩数も卵へのダメージとして扱う
@@ -221,6 +282,7 @@ class GameNotifier extends Notifier<PlayerStats> {
         tapUpgradeLevel: state.tapUpgradeLevel + 1,
       );
       SoundManager().playDecide(); // SE
+      _save(); // 重要イベントなので保存
       return true;
     }
     return false;
@@ -254,6 +316,7 @@ class GameNotifier extends Notifier<PlayerStats> {
         scheduledDate: newEndTime,
       );
 
+      _save(); // 保存
       return true;
     }
     return false;
@@ -261,26 +324,39 @@ class GameNotifier extends Notifier<PlayerStats> {
 
   /// 卵の孵化処理（ガチャ＆リセット）
   void _hatchEgg() {
-    // 1. ガチャでモンスター生成
+    // 1. ガチャでモンスター生成 (常にBabyとして生成)
     final newMonster = _generateRandomMonster();
 
-    // 2. おともだちリストに追加
-    final updatedFriends = List<Monster>.from(state.friends)..add(newMonster);
-
-    // 3. 図鑑更新
+    // 2. 図鑑更新 (合体で消える前に、生まれた瞬間のモンスターを記録)
     final discoveredIds = List<int>.from(state.discoveredMonsterIds);
+    final catalog = Map<String, int>.from(state.collectionCatalog);
+
+    // 生まれたモンスターをカタログに登録
     if (!discoveredIds.contains(newMonster.id)) {
       discoveredIds.add(newMonster.id);
     }
-
-    // 4. 図鑑更新 (詳細データ)
-    final catalog = Map<String, int>.from(state.collectionCatalog);
-    final key = '${newMonster.id}_${newMonster.stage.name}';
-    final currentRarity = catalog[key] ?? 0;
-
-    // 現在より高いレアリティなら更新、または新規登録
+    final newKey = '${newMonster.id}_${newMonster.stage.name}';
+    final currentRarity = catalog[newKey] ?? 0;
     if (newMonster.rarity > currentRarity) {
-      catalog[key] = newMonster.rarity;
+      catalog[newKey] = newMonster.rarity;
+    }
+
+    // 3. おともだちリストに追加 & 合体進化チェック
+    var updatedFriends = List<Monster>.from(state.friends);
+
+    // 同じ種類のBaby/Teenが2体いるかチェックして合体
+    updatedFriends = _tryMergeMonsters(updatedFriends, newMonster);
+
+    // 4. 合体後の結果もカタログに反映 (進化したモンスターなど)
+    for (final friend in updatedFriends) {
+      if (!discoveredIds.contains(friend.id)) {
+        discoveredIds.add(friend.id);
+      }
+      final key = '${friend.id}_${friend.stage.name}';
+      final r = catalog[key] ?? 0;
+      if (friend.rarity > r) {
+        catalog[key] = friend.rarity;
+      }
     }
 
     // 5. 新しい卵をセット (ダメージリセット)
@@ -293,16 +369,85 @@ class GameNotifier extends Notifier<PlayerStats> {
       collectionCatalog: catalog,
       // gold, upgradeLevel等は維持
     );
+    _save(); // 孵化（進化完了）時に保存
+  }
+
+  /// モンスターリストに新しいモンスターを追加し、合体進化を試みる
+  List<Monster> _tryMergeMonsters(
+    List<Monster> currentFriends,
+    Monster newMonster,
+  ) {
+    // まず新しいモンスターを追加
+    final friends = List<Monster>.from(currentFriends)..add(newMonster);
+
+    // 合体ロジック: 再帰的にチェック (Babyが2体 -> Teenが2体 -> Adultになる可能性)
+    bool merged;
+    do {
+      merged = false;
+      // グループ化: IDとStageが同じものを集める
+      final Map<String, List<Monster>> groups = {};
+      for (var m in friends) {
+        // Adultはこれ以上進化しないので対象外
+        if (m.stage == EvolutionStage.adult) continue;
+
+        final key = '${m.id}_${m.stage.name}';
+        if (!groups.containsKey(key)) groups[key] = [];
+        groups[key]!.add(m);
+      }
+
+      // 2体以上あるグループを探す
+      for (final key in groups.keys) {
+        final group = groups[key]!;
+        if (group.length >= 2) {
+          // 2体を取り除く
+          final targets = group.take(2).toList();
+          for (var t in targets) {
+            friends.remove(t);
+          }
+
+          // 合体するモンスターの中で最も高いレアリティを引き継ぐ
+          final maxRarity = targets.map((m) => m.rarity).reduce(max);
+
+          // 進化した1体を追加
+          final base = targets.first;
+          final nextStage = base.nextStage;
+          if (nextStage != null) {
+            final evolvedMonster = base.copyWith(
+              stage: nextStage,
+              rarity: maxRarity, // 最高レアリティを引き継ぐ
+              attackPower: _calculateAttackPower(nextStage, maxRarity),
+              // 名前も更新が必要ならここで (例: アダルトドラゴン)
+            );
+            friends.add(evolvedMonster);
+            merged = true;
+            // ログ: 合体しました！
+          }
+
+          // リスト変更したのでループを抜けて再評価
+          break;
+        }
+      }
+    } while (merged);
+
+    return friends;
   }
 
   /// ガチャ確率に基づいてランダムなモンスターを生成
   Monster _generateRandomMonster() {
-    // 利用可能なIDリストからランダムに選択
-    final index = _random.nextInt(GenAssets.availableMonsterIds.length);
-    final monsterId = GenAssets.availableMonsterIds[index];
-
     final rarity = _determineRarity();
-    final stage = _determineStage(rarity); // レアリティに応じて進化段階も決定
+    final stage = _determineStage();
+
+    int monsterId;
+    if (rarity == 6) {
+      // USR (Ultra Super Rare) -> ID 49 (Mecha Dragon) or 50 (King Egg)
+      monsterId = 49 + _random.nextInt(2);
+    } else {
+      // Normal to Legend -> ID 1 to 48
+      // availableMonsterIdsは1..50が入っているが、ここから49,50を除外する
+      // ID 1..48 の範囲でランダム
+      monsterId = 1 + _random.nextInt(48);
+    }
+
     final name = _generateMonsterName(monsterId, rarity);
 
     return Monster(
@@ -315,32 +460,51 @@ class GameNotifier extends Notifier<PlayerStats> {
       accumulatedSteps: 0,
       isDiscovered: true,
       obtainedAt: DateTime.now(),
-      description: '奇跡的に生まれた、${AppTheme.getRarityName(rarity)}ランクのモンスター。',
+      description: MonsterData.getDescription(monsterId, stage),
     );
   }
 
-  /// 進化段階（ランク）を決定
-  EvolutionStage _determineStage(int rarity) {
-    // レアリティが高いほど、最初から進化している確率を上げるなどの調整も可能
+  /// 初期排出ステージを決定
+  EvolutionStage _determineStage() {
     final roll = _random.nextDouble() * 100;
-
-    // 成体(Adult): 5%
-    if (roll < 5) return EvolutionStage.adult;
-    // 成長体(Teen): 25%
-    if (roll < 30) return EvolutionStage.teen;
-    // 幼体(Baby): 70%
-    return EvolutionStage.baby;
+    if (roll < 2) return EvolutionStage.adult; // 2%
+    if (roll < 7) return EvolutionStage.teen; // 5% (+2=7)
+    return EvolutionStage.baby; // 93%
   }
 
   /// レアリティを決定（加重ランダム）
   int _determineRarity() {
     final roll = _random.nextDouble() * 100;
 
-    if (roll < 50) return 1; // 50% - ノーマル
-    if (roll < 80) return 2; // 30% - レア
-    if (roll < 95) return 3; // 15% - スーパーレア
-    if (roll < 99) return 4; //  4% - ウルトラレア
-    return 5; //  1% - レジェンド
+    // N:50%, R:30%, SR:15%, UR:4%, LG:0.5%, USR:0.5%
+    if (roll < 50) return 1; // 50.0% - N
+    if (roll < 80) return 2; // 30.0% - R
+    if (roll < 95) return 3; // 15.0% - SR
+    if (roll < 99) return 4; //  4.0% - UR
+    if (roll < 99.5) return 5; //  0.5% - LG
+    return 6; //  0.5% - USR
+  }
+
+  /// 攻撃力の計算
+  int _calculateAttackPower(EvolutionStage stage, int rarity) {
+    // USR (Rarity 6) は特別扱いし、強力なステータスにする
+    if (rarity == 6) {
+      final basePower = switch (stage) {
+        EvolutionStage.egg => 0,
+        EvolutionStage.baby => 2, // 50 -> 2 (Total: 20)
+        EvolutionStage.teen => 10, // 250 -> 10 (Total: 100)
+        EvolutionStage.adult => 50, // 1000 -> 50 (Total: 500)
+      };
+      return basePower * 10; // ベース自体を高く設定したのでさらに倍率は抑えめでも強いが、要望通り強力に
+    }
+
+    final basePower = switch (stage) {
+      EvolutionStage.egg => 0,
+      EvolutionStage.baby => 1,
+      EvolutionStage.teen => 5,
+      EvolutionStage.adult => 15,
+    };
+    return basePower * rarity;
   }
 
   /// モンスター名を生成
@@ -414,6 +578,7 @@ class GameNotifier extends Notifier<PlayerStats> {
     // 配列からランダムにとる。
     // ここではシンプルにレアリティに応じた形容詞をランダムに返す。
     final prefixes = switch (rarity) {
+      6 => ['究極の', '最強の', '伝説を超える', '奇跡の'], // USR
       5 => ['伝説の', '神話級', '最強の', '究極', '光り輝く'], // LG
       4 => ['いにしえの', '王家の', '真・', '超', 'マスター'], // UR
       3 => ['強い', '大きな', 'すごい', '怒りの', '熟練'], // SR
@@ -421,32 +586,6 @@ class GameNotifier extends Notifier<PlayerStats> {
       _ => ['はじめての', 'よわい', 'そこらへんの', 'ちいさな', ''], // N
     };
     return prefixes[_random.nextInt(prefixes.length)];
-  }
-
-  /// 進化段階とレアリティに応じたEXP産出量を計算
-  double _calculateExpRate(EvolutionStage stage, int rarity) {
-    final baseRate = switch (stage) {
-      EvolutionStage.egg => 0.0,
-      EvolutionStage.baby => 0.1,
-      EvolutionStage.teen => 0.3,
-      EvolutionStage.adult => 1.0,
-    };
-
-    // レアリティボーナス
-    final rarityMultiplier = 1.0 + (rarity - 1) * 0.5;
-
-    return baseRate * rarityMultiplier;
-  }
-
-  /// 進化段階とレアリティに応じた攻撃力を計算
-  int _calculateAttackPower(EvolutionStage stage, int rarity) {
-    final basePower = switch (stage) {
-      EvolutionStage.egg => 0,
-      EvolutionStage.baby => 1,
-      EvolutionStage.teen => 2,
-      EvolutionStage.adult => 5,
-    };
-    return basePower * rarity;
   }
 
   /// 新しい卵を生成
@@ -493,6 +632,335 @@ class GameNotifier extends Notifier<PlayerStats> {
       discoveredMonsterIds: [],
     );
     _startAutoExpTimer();
+  }
+
+  // === 広告関連ロジック ===
+
+  /// 広告を見て攻撃力をアップグレード (無料 +1レベル)
+  bool get canWatchAdAttackUpgrade {
+    if (state.lastAdAttackUpgradeTime == null) return true;
+    final diff = DateTime.now().difference(state.lastAdAttackUpgradeTime!);
+    return diff.inHours >= 1;
+  }
+
+  /// 攻撃力アップグレードの広告再生残り時間
+  Duration get adAttackUpgradeCooldown {
+    if (state.lastAdAttackUpgradeTime == null) return Duration.zero;
+    final diff = DateTime.now().difference(state.lastAdAttackUpgradeTime!);
+    final remaining = const Duration(hours: 1) - diff;
+    return remaining.isNegative ? Duration.zero : remaining;
+  }
+
+  /// 広告を見て攻撃力アップグレード (+1 Level - 無料)
+  Future<bool> watchAdForAttackUpgrade() async {
+    if (!canWatchAdAttackUpgrade) return false;
+
+    // Pro User: Instant Reward
+    if (isPro) {
+      await Future.delayed(const Duration(milliseconds: 500)); // Mock wait
+      _grantAttackUpgradeReward();
+      return true;
+    }
+
+    final result = await _adService.watchAd();
+    if (result) {
+      _grantAttackUpgradeReward();
+      return true;
+    }
+    return false;
+  }
+
+  void _grantAttackUpgradeReward() {
+    final now = DateTime.now();
+    state = state.copyWith(
+      attackUpgradeLevel: state.attackUpgradeLevel + 1,
+      lastAdAttackUpgradeTime: now,
+    );
+    SoundManager().playFanfare();
+    _save();
+  }
+
+  /// タップアップグレードの広告再生残り時間
+  bool get canWatchAdTapUpgrade {
+    if (state.lastAdTapUpgradeTime == null) return true;
+    final diff = DateTime.now().difference(state.lastAdTapUpgradeTime!);
+    return diff.inHours >= 4;
+  }
+
+  /// タップアップグレードの広告再生残り時間
+  Duration get adTapUpgradeCooldown {
+    if (state.lastAdTapUpgradeTime == null) return Duration.zero;
+    final diff = DateTime.now().difference(state.lastAdTapUpgradeTime!);
+    final remaining = const Duration(hours: 4) - diff;
+    return remaining.isNegative ? Duration.zero : remaining;
+  }
+
+  Future<bool> watchAdForTapUpgrade() async {
+    if (!canWatchAdTapUpgrade) return false;
+
+    // Pro User: Instant Reward
+    if (isPro) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      _grantTapUpgradeReward();
+      return true;
+    }
+
+    final result = await _adService.watchAd();
+    if (result) {
+      _grantTapUpgradeReward();
+      return true;
+    }
+    return false;
+  }
+
+  void _grantTapUpgradeReward() {
+    final now = DateTime.now();
+    state = state.copyWith(
+      tapUpgradeLevel: state.tapUpgradeLevel + 1,
+      lastAdTapUpgradeTime: now,
+    );
+    SoundManager().playFanfare();
+    _save();
+  }
+
+  /// 歩数ブーストの広告が見られるか (24時間クールダウン)
+  bool get canWatchAdStepBoost {
+    if (state.lastAdStepBoostTime == null) return true;
+    final diff = DateTime.now().difference(state.lastAdStepBoostTime!);
+    return diff.inHours >= 24;
+  }
+
+  /// 歩数ブーストの広告再生残り時間
+  Duration get adStepBoostCooldown {
+    if (state.lastAdStepBoostTime == null) return Duration.zero;
+    final diff = DateTime.now().difference(state.lastAdStepBoostTime!);
+    final remaining = const Duration(hours: 24) - diff;
+    return remaining.isNegative ? Duration.zero : remaining;
+  }
+
+  /// 広告を見てステップブースト (30分2倍 - 無料)
+  Future<bool> watchAdForStepBoost() async {
+    if (!canWatchAdStepBoost) return false;
+
+    // Pro User: Instant Reward
+    if (isPro) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      _grantStepBoostReward();
+      return true;
+    }
+
+    final result = await _adService.watchAd();
+    if (result) {
+      _grantStepBoostReward();
+      return true;
+    }
+    return false;
+  }
+
+  void _grantStepBoostReward() {
+    final now = DateTime.now();
+    final currentEndTime = state.stepBoostEndTime ?? now;
+    final startTime = currentEndTime.isAfter(now) ? currentEndTime : now;
+
+    state = state.copyWith(
+      stepBoostEndTime: startTime.add(const Duration(minutes: 30)),
+      lastAdStepBoostTime: now,
+    );
+
+    SoundManager().playFanfare();
+    // 通知もスケジュール
+    NotificationService().scheduleBoostEndNotification(state.stepBoostEndTime!);
+    _save();
+  }
+
+  // === EPS Boost (x10) Logic ===
+
+  /// EPSブーストの広告が見られるか (3分間隔)
+  bool get canWatchAdEpsBoost {
+    if (state.lastAdEpsBoostTime == null) return true;
+    final diff = DateTime.now().difference(state.lastAdEpsBoostTime!);
+    return diff.inMinutes >= 3;
+  }
+
+  /// EPSブーストの広告再生残り時間
+  Duration get adEpsBoostCooldown {
+    if (state.lastAdEpsBoostTime == null) return Duration.zero;
+    final diff = DateTime.now().difference(state.lastAdEpsBoostTime!);
+    final remaining = const Duration(minutes: 3) - diff;
+    return remaining.isNegative ? Duration.zero : remaining;
+  }
+
+  /// 広告を見てEPSブースト (3分間10倍 - 無料)
+  Future<bool> watchAdForEpsBoost() async {
+    if (!canWatchAdEpsBoost) return false;
+
+    // Pro User: Instant Reward
+    if (isPro) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      _grantEpsBoostReward();
+      return true;
+    }
+
+    final result = await _adService.watchAd();
+    if (result) {
+      _grantEpsBoostReward();
+      return true;
+    }
+    return false;
+  }
+
+  void _grantEpsBoostReward() {
+    final now = DateTime.now();
+    final currentEndTime = state.epsBoostEndTime ?? now;
+    final startTime = currentEndTime.isAfter(now) ? currentEndTime : now;
+
+    state = state.copyWith(
+      epsBoostEndTime: startTime.add(const Duration(minutes: 3)),
+      lastAdEpsBoostTime: now,
+    );
+
+    SoundManager().playFanfare();
+    _save();
+  }
+
+  // === Health Connect Helpers ===
+
+  Future<HealthConnectSdkStatus?> checkHealthConnectStatus() {
+    return _healthRepository.getHealthConnectSdkStatus();
+  }
+
+  Future<void> installHealthConnect() {
+    return _healthRepository.installHealthConnect();
+  }
+
+  Future<bool> checkHealthPermissions() {
+    return _healthRepository.hasPermissions();
+  }
+
+  Future<bool> requestHealthPermissions() async {
+    final result = await _healthRepository.requestPermissions();
+    if (result) {
+      await syncSteps();
+    }
+    return result;
+  }
+
+  Future<void> openDeviceSettings() {
+    return _healthRepository.openDeviceSettings();
+  }
+
+  /// EPSブーストを購入 (課金)
+  /// [minutes] 分数
+  /// [cost] 価格 (Gems)
+  bool purchaseEpsBoost(int minutes, int cost) {
+    if (state.gems < cost) return false;
+
+    final now = DateTime.now();
+    final currentEndTime = state.epsBoostEndTime ?? now;
+    final startTime = currentEndTime.isAfter(now) ? currentEndTime : now;
+
+    state = state.copyWith(
+      gems: state.gems - cost,
+      epsBoostEndTime: startTime.add(Duration(minutes: minutes)),
+    );
+
+    SoundManager().playFanfare(); // 購入成功音
+    _save();
+    return true;
+  }
+
+  // === Tap Boost (x5) Logic ===
+
+  /// タップブーストの広告が見られるか
+  bool get canWatchAdTapBoost {
+    if (state.lastAdTapBoostTime == null) return true;
+    final diff = DateTime.now().difference(state.lastAdTapBoostTime!);
+    return diff.inMinutes >= 15;
+  }
+
+  /// タップブーストの広告再生残り時間
+  Duration get adTapBoostCooldown {
+    if (state.lastAdTapBoostTime == null) return Duration.zero;
+    final diff = DateTime.now().difference(state.lastAdTapBoostTime!);
+    final remaining = const Duration(minutes: 15) - diff;
+    return remaining.isNegative ? Duration.zero : remaining;
+  }
+
+  /// 広告を見てタップブースト (3分間5倍 - 無料)
+  Future<bool> watchAdForTapBoost() async {
+    if (!canWatchAdTapBoost) return false;
+
+    // Pro User: Instant Reward
+    if (isPro) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      _grantTapBoostReward();
+      return true;
+    }
+
+    final result = await _adService.watchAd();
+    if (result) {
+      _grantTapBoostReward();
+      return true;
+    }
+    return false;
+  }
+
+  void _grantTapBoostReward() {
+    final now = DateTime.now();
+    final currentEndTime = state.tapBoostEndTime ?? now;
+    final startTime = currentEndTime.isAfter(now) ? currentEndTime : now;
+
+    state = state.copyWith(
+      tapBoostEndTime: startTime.add(const Duration(minutes: 3)),
+      lastAdTapBoostTime: now,
+    );
+    SoundManager().playFanfare();
+    _save();
+  }
+
+  /// タップブーストを購入 (課金)
+  /// [minutes] 分数
+  /// [cost] 価格 (Gems)
+  bool purchaseTapBoost(int minutes, int cost) {
+    if (state.gems < cost) return false;
+
+    final now = DateTime.now();
+    final currentEndTime = state.tapBoostEndTime ?? now;
+    final startTime = currentEndTime.isAfter(now) ? currentEndTime : now;
+
+    state = state.copyWith(
+      gems: state.gems - cost,
+      tapBoostEndTime: startTime.add(const Duration(minutes: 15)),
+      lastAdTapBoostTime: now,
+    );
+
+    SoundManager().playFanfare(); // 購入成功音
+    _save();
+    return true;
+  }
+
+  /// RevenueCat Paywallを表示
+  Future<void> presentPaywall() async {
+    await _purchaseService.presentPaywall();
+    // 閉じた後にステータス更新確認
+    isPro = await _purchaseService.isProUser();
+    // UI更新のために空のstate更新などが必要なら行う (今回はisProがフィールドなので簡易的に)
+    // リビルドを促すためにstateを再セット
+    state = state.copyWith();
+  }
+
+  /// Customer Centerを表示
+  Future<void> presentCustomerCenter() async {
+    await _purchaseService.presentCustomerCenter();
+    // 閉じた後にステータス更新確認
+    isPro = await _purchaseService.isProUser();
+    state = state.copyWith();
+  }
+
+  /// ジェムを追加 (IAP後などに呼び出し)
+  void addGems(int amount) {
+    state = state.copyWith(gold: state.gold, gems: state.gems + amount);
+    _save();
   }
 }
 

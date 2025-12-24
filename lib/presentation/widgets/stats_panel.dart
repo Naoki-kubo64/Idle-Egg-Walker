@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/player_stats.dart';
+import 'package:egg_walker/gen/app_localizations.dart';
 
 /// 統計パネルウィジェット
 ///
@@ -13,6 +14,7 @@ class StatsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -35,14 +37,14 @@ class StatsPanel extends StatelessWidget {
         children: [
           _buildStatItem(
             icon: const Text('👆', style: TextStyle(fontSize: 24)),
-            label: 'Tap Power',
+            label: l10n.tapPower,
             value: _formatNumber(stats.currentTapPower),
             color: AppTheme.secondaryColor,
           ),
           _buildDivider(),
           _buildStatItem(
             icon: const Text('⚔️', style: TextStyle(fontSize: 24)),
-            label: 'Atk Power',
+            label: l10n.atkPower,
             value: _formatNumber(stats.totalAttackPower.toDouble()),
             color: Colors.redAccent,
           ),
@@ -55,14 +57,14 @@ class StatsPanel extends StatelessWidget {
               errorBuilder:
                   (c, e, s) => const Text('💰', style: TextStyle(fontSize: 24)),
             ),
-            label: 'Gold',
+            label: l10n.gold,
             value: _formatNumber(stats.gold.toDouble()),
             color: Colors.amber,
           ),
           _buildDivider(),
           _buildStatItem(
             icon: const Text('⚡', style: TextStyle(fontSize: 24)),
-            label: 'EPS', // Exp Per Second
+            label: l10n.eps, // Exp Per Second
             value: stats.autoExpPerSecond.toStringAsFixed(1),
             color: AppTheme.accentGold,
             isHighlighted: true,

@@ -1,0 +1,23 @@
+﻿Analyzing Egg Walker...                                         
+
+warning - The value of the local variable 'discoveredIds' isn't used - lib\presentation\screens\collection_screen.dart:19:11 - unused_local_variable
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\health_screen.dart:224:15 - prefer_const_constructors
+warning - Unused import: 'package:egg_walker/gen/app_localizations.dart' - lib\presentation\screens\home_screen.dart:21:8 - unused_import
+   info - Unnecessary instance of 'Container' - lib\presentation\screens\home_screen.dart:125:16 - avoid_unnecessary_containers
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\presentation\screens\rules_screen.dart:77:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\presentation\screens\rules_screen.dart:79:57 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\presentation\screens\rules_screen.dart:82:33 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\upgrade_screen.dart:421:26 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\upgrade_screen.dart:679:32 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\upgrade_screen.dart:685:23 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\upgrade_screen.dart:875:28 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\upgrade_screen.dart:881:19 - prefer_const_constructors
+warning - The declaration '_getGlowColor' isn't referenced - lib\presentation\widgets\character_display.dart:252:9 - unused_element
+warning - The declaration '_handleTap' isn't referenced - lib\presentation\widgets\click_effect_overlay.dart:143:8 - unused_element
+   info - Use 'const' with the constructor to improve performance - lib\presentation\widgets\exp_bar.dart:97:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\presentation\widgets\monster_detail_dialog.dart:149:27 - prefer_const_constructors
+warning - The declaration '_calculateExpRate' isn't referenced - lib\providers\game_notifier.dart:544:10 - unused_element
+warning - Unused import: 'dart:io' - lib\services\purchase_service.dart:4:8 - unused_import
+   info - 'purchasePackage' is deprecated and shouldn't be used. Use purchase(PurchaseParams) - lib\services\purchase_service.dart:76:31 - deprecated_member_use
+   info - Unnecessary braces in a string interpolation - scripts\import_assets.dart:69:29 - unnecessary_brace_in_string_interps
+

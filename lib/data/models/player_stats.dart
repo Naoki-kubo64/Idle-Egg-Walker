@@ -60,9 +60,15 @@ class PlayerStats with _$PlayerStats {
     /// 1日の目標歩数
     @Default(8000) int dailyStepGoal,
 
+    /// 日別歩数履歴 (yyyy-MM-dd -> steps)
+    @Default({}) Map<String, int> dailyStepsHistory,
+
     // === 通貨・アップグレード ===
     /// 所持金 (Gold)
     @Default(0) int gold,
+
+    /// 所持ジェム (Premium Currency)
+    @Default(100) int gems,
 
     /// 攻撃力アップグレードレベル（Lv1 = 1.0倍, Lv2 = 1.1倍...）
     @Default(1) int attackUpgradeLevel,
@@ -70,8 +76,29 @@ class PlayerStats with _$PlayerStats {
     /// タップ攻撃力アップグレードレベル
     @Default(1) int tapUpgradeLevel,
 
+    /// 最後に動画を見て攻撃力アップグレードをした時間
+    DateTime? lastAdAttackUpgradeTime,
+
+    /// 最後に動画を見てタップアップグレードをした時間
+    DateTime? lastAdTapUpgradeTime,
+
+    /// 最後に動画を見て歩数ブーストをした時間
+    DateTime? lastAdStepBoostTime,
+
+    /// 最後に動画を見てEPSブーストをした時間
+    DateTime? lastAdEpsBoostTime,
+
     /// 歩数ブースト終了時刻
     DateTime? stepBoostEndTime,
+
+    /// EPSブースト終了時刻
+    DateTime? epsBoostEndTime,
+
+    /// 最後に動画を見てタップブーストをした時間
+    DateTime? lastAdTapBoostTime,
+
+    /// タップブースト終了時刻
+    DateTime? tapBoostEndTime,
   }) = _PlayerStats;
 
   factory PlayerStats.fromJson(Map<String, dynamic> json) =>
@@ -91,7 +118,14 @@ class PlayerStats with _$PlayerStats {
   /// GameNotifier._addAutoExpのロジックと一致させる(攻撃力 * 0.5)
   double get autoExpPerSecond {
     if (friends.isEmpty) return 0.0;
-    return totalAttackPower.toDouble() * 0.5;
+    double baseEps = totalAttackPower.toDouble() * 0.5;
+
+    // EPSブースト適用
+    if (epsBoostEndTime != null && epsBoostEndTime!.isAfter(DateTime.now())) {
+      baseEps *= 10;
+    }
+
+    return baseEps;
   }
 
   /// 現在の1タップあたりのダメージ量
@@ -101,10 +135,17 @@ class PlayerStats with _$PlayerStats {
     // ここではマジックナンバーを避けるため定数と同じ3000.0を使用するか、
     // GameNotifierと共通化するためにロジックをここに集約すべき。
     // 今回は整合性を取るため計算式を再現。
-    const double baseExp = 3000.0; // GameConstants.expPerTap
+    const double baseExp = 1.0; // GameConstants.expPerTap
     final double tapMultiplier = 1.0 + (tapUpgradeLevel - 1) * 0.05;
 
-    return (baseExp * tapMultiplier) + totalAttackPower;
+    double power = (baseExp * tapMultiplier) + totalAttackPower;
+
+    // タップブースト適用 (5倍)
+    if (tapBoostEndTime != null && tapBoostEndTime!.isAfter(DateTime.now())) {
+      power *= 5;
+    }
+
+    return power;
   }
 
   /// おともだちの総攻撃力（タップ時の加算値）

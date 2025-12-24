@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import 'package:egg_walker/gen/app_localizations.dart';
 
 class WelcomeBackDialog extends StatelessWidget {
   final int steps;
-  final int exp;
+  final int stepExp;
+  final int timeExp;
 
-  const WelcomeBackDialog({super.key, required this.steps, required this.exp});
+  const WelcomeBackDialog({
+    super.key,
+    required this.steps,
+    required this.stepExp,
+    required this.timeExp,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(24),
@@ -30,7 +38,7 @@ class WelcomeBackDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'おかえりなさい！',
+              l10n.welcomeBackTitle,
               style: AppTheme.headlineMedium.copyWith(
                 color: AppTheme.textPrimary,
               ),
@@ -39,17 +47,27 @@ class WelcomeBackDialog extends StatelessWidget {
             // 歩数
             _buildRow(
               iconPath: 'assets/images/ui/icon_shoes.png',
-              label: '歩いた歩数',
-              value: '$steps 歩',
+              label: l10n.stepsWalked,
+              value: '$steps ${l10n.steps}',
               fallbackIcon: Icons.directions_walk,
               color: AppTheme.accentPink,
             ),
             const SizedBox(height: 16),
-            // EXP
+            // 歩数EXP
             _buildRow(
-              iconPath: 'assets/images/ui/icon_sword.png', // 剣アイコンを代用、あるいはGold
-              label: '獲得経験値',
-              value: '$exp EXP',
+              iconPath: 'assets/images/ui/icon_sword.png',
+              label:
+                  '${l10n.expGained} (${l10n.steps}分)', // 簡易的なラベル（本来は翻訳キーを追加すべき）
+              value: '$stepExp ${l10n.exp}',
+              fallbackIcon: Icons.bolt,
+              color: AppTheme.accentGold,
+            ),
+            const SizedBox(height: 16),
+            // 放置EXP
+            _buildRow(
+              iconPath: 'assets/images/ui/icon_sword.png',
+              label: '${l10n.expGained} (放置分)', // 簡易的なラベル
+              value: '$timeExp ${l10n.exp}',
               fallbackIcon: Icons.bolt,
               color: AppTheme.accentGold,
             ),
@@ -60,16 +78,18 @@ class WelcomeBackDialog extends StatelessWidget {
                 onPressed: () => Navigator.of(context).pop(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryColor,
-                  foregroundColor:
-                      AppTheme.textPrimary, // textDark -> textPrimary
+                  foregroundColor: AppTheme.textPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text(
-                  'OK',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                child: Text(
+                  l10n.ok,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -116,7 +136,9 @@ class WelcomeBackDialog extends StatelessWidget {
               ),
               Text(
                 value,
-                style: AppTheme.headlineMedium.copyWith(color: Colors.white),
+                style: AppTheme.headlineMedium.copyWith(
+                  color: AppTheme.textPrimary,
+                ),
               ),
             ],
           ),

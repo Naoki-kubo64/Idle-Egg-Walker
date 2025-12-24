@@ -22,6 +22,16 @@ class GenAssets {
   static const String eggCracking = '$_basePath/egg/egg_cracking.png';
   static const String eggHatching = '$_basePath/egg/egg_hatching.png';
 
+  /// 進捗に応じた卵画像を取得 (20%刻み)
+  static String getEggImage(double progress) {
+    // progress is 0.0 to 1.0
+    if (progress >= 0.8) return '$_basePath/egg/egg_080.png';
+    if (progress >= 0.6) return '$_basePath/egg/egg_060.png';
+    if (progress >= 0.4) return '$_basePath/egg/egg_040.png';
+    if (progress >= 0.2) return '$_basePath/egg/egg_020.png';
+    return '$_basePath/egg/egg_000.png';
+  }
+
   // === モンスターアセット ===
   /// モンスター画像のパスを取得（連番形式）
   /// [id] - モンスターID（1から始まる）
