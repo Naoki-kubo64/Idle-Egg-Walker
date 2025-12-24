@@ -9,8 +9,8 @@ class PurchaseService {
 
   bool _isInitialized = false;
 
-  // Provided Test API Key
-  final String _apiKey = 'test_IbsMUMvGDPrMNTORerIfNwanKtA';
+  // Production API Key
+  final String _apiKey = 'goog_OaxsRvWWsMOvlQHobjeYeuxRgvO';
 
   Future<void> init() async {
     if (_isInitialized) return;

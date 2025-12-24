@@ -1,0 +1,19 @@
+# リリースノート 1.1.0
+
+今回のアップデートでは、ゲーム体験をより快適にするための改善と機能追加を行いました。
+
+**主な変更点**
+
+*   **アプリ名の変更:** アプリ名を「Idle Egg Walker」に変更しました。
+*   **演出の強化:** 卵にひびが入る際の効果音を追加しました。育成の進捗がより分かりやすくなりました。
+*   **UIの改善:** 広告リワードのタイマー表示を見やすく改善しました。
+*   **バランス調整:** リワード広告（攻撃力UP・タップ効率UP）の再使用時間を4時間に統一しました。
+*   **不具合修正:** アプリ起動時の安定性を向上させました。
+
+**English**
+
+*   **Renamed App:** Changed app name to "Idle Egg Walker".
+*   **Enhanced Effects:** Added sound effects when the egg cracks.
+*   **UI Improvements:** Improved visibility of reward ad timers.
+*   **Balance Adjustment:** Unified cooldown time for reward ads (Attack/Tap) to 4 hours.
+*   **Bug Fixes:** Improved stability at app launch.
