@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../data/models/monster.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/constants/gen_assets.dart';
+import '../../services/sound_manager.dart';
 
 /// キャラクター表示ウィジェット
 ///
@@ -33,9 +34,14 @@ class _CharacterDisplayState extends State<CharacterDisplay>
   late Animation<double> _bounceAnimation;
   late Animation<double> _breathingAnimation;
 
+  int _currentCrackLevel = 0;
+
   @override
   void initState() {
     super.initState();
+
+    // 初期化時のひび割れレベルを計算
+    _updateCrackLevel();
 
     // 呼吸アニメーション（常時ゆっくり）
     _breathingController = AnimationController(
@@ -71,6 +77,44 @@ class _CharacterDisplayState extends State<CharacterDisplay>
         weight: 85,
       ),
     ]).animate(_bounceController);
+  }
+
+  @override
+  void didUpdateWidget(CharacterDisplay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.currentExp != oldWidget.currentExp ||
+        widget.maxExp != oldWidget.maxExp) {
+      _checkCrackProgress();
+    }
+  }
+
+  void _updateCrackLevel() {
+    if (widget.monster?.isEgg != true) return;
+    if (widget.currentExp == null ||
+        widget.maxExp == null ||
+        widget.maxExp == 0)
+      return;
+    final progress = (widget.currentExp! / widget.maxExp!).clamp(0.0, 1.0);
+    // 20%刻みでレベル0〜4 (0.0, 0.2, 0.4, 0.6, 0.8)
+    _currentCrackLevel = (progress * 5).floor();
+  }
+
+  void _checkCrackProgress() {
+    if (widget.monster?.isEgg != true) return;
+    if (widget.currentExp == null ||
+        widget.maxExp == null ||
+        widget.maxExp == 0)
+      return;
+
+    final progress = (widget.currentExp! / widget.maxExp!).clamp(0.0, 1.0);
+    final newLevel = (progress * 5).floor();
+
+    // レベルが上がり、かつ新しいレベルが閾値(1〜4)の場合に音を鳴らす
+    // レベル0は初期状態なので鳴らさない
+    if (newLevel > _currentCrackLevel && newLevel <= 4 && newLevel > 0) {
+      SoundManager().playEggCrack();
+    }
+    _currentCrackLevel = newLevel;
   }
 
   @override

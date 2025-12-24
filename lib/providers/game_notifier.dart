@@ -640,14 +640,14 @@ class GameNotifier extends Notifier<PlayerStats> {
   bool get canWatchAdAttackUpgrade {
     if (state.lastAdAttackUpgradeTime == null) return true;
     final diff = DateTime.now().difference(state.lastAdAttackUpgradeTime!);
-    return diff.inHours >= 1;
+    return diff.inHours >= 4;
   }
 
   /// 攻撃力アップグレードの広告再生残り時間
   Duration get adAttackUpgradeCooldown {
     if (state.lastAdAttackUpgradeTime == null) return Duration.zero;
     final diff = DateTime.now().difference(state.lastAdAttackUpgradeTime!);
-    final remaining = const Duration(hours: 1) - diff;
+    final remaining = const Duration(hours: 4) - diff;
     return remaining.isNegative ? Duration.zero : remaining;
   }
 

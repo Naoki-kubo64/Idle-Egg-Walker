@@ -142,6 +142,15 @@ class SoundManager {
     await _playSe('audio/se_coin.mp3');
   }
 
+  /// 卵のひび割れ音
+  Future<void> playEggCrack() async {
+    _ensureBgmPlaying();
+    // 2種類の音からランダムに選択
+    final isFirst = DateTime.now().millisecond % 2 == 0;
+    final path = isFirst ? 'audio/egg_break_01.mp3' : 'audio/egg_break_02.mp3';
+    await _playSe(path);
+  }
+
   /// SE再生共通処理
   Future<void> _playSe(String path) async {
     try {

@@ -476,19 +476,31 @@ class UpgradeScreen extends ConsumerWidget {
                   ),
                   child: Column(
                     children: [
-                      const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.play_circle_filled, size: 16),
-                          SizedBox(width: 4),
-                          Text('無料UP'),
-                        ],
-                      ),
-                      if (!canWatchAd && !isPro)
+                      if (canWatchAd || isPro)
+                        const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.play_circle_filled, size: 16),
+                            SizedBox(width: 4),
+                            Text('無料UP'),
+                          ],
+                        )
+                      else ...[
+                        const Icon(
+                          Icons.timer_outlined,
+                          size: 16,
+                          color: Colors.white70,
+                        ),
+                        const SizedBox(height: 2),
                         Text(
                           formatDuration(adCooldown),
-                          style: const TextStyle(fontSize: 10),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
+                      ],
                       if (isPro)
                         const Text(
                           '(Instant)',
@@ -727,19 +739,31 @@ class UpgradeScreen extends ConsumerWidget {
                   ),
                   child: Column(
                     children: [
-                      const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.play_circle_filled, size: 16),
-                          SizedBox(width: 4),
-                          Text('無料 (3分)'),
-                        ],
-                      ),
-                      if (!canWatchAd && !isPro)
+                      if (canWatchAd || isPro)
+                        const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.play_circle_filled, size: 16),
+                            SizedBox(width: 4),
+                            Text('無料 (3分)'),
+                          ],
+                        )
+                      else ...[
+                        const Icon(
+                          Icons.timer_outlined,
+                          size: 16,
+                          color: Colors.white70,
+                        ),
+                        const SizedBox(height: 2),
                         Text(
                           formatDuration(adCooldown),
-                          style: const TextStyle(fontSize: 10),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
+                      ],
                       if (isPro)
                         const Text(
                           'Instant',
@@ -939,19 +963,31 @@ class UpgradeScreen extends ConsumerWidget {
                   ),
                   child: Column(
                     children: [
-                      const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.play_circle_filled, size: 16),
-                          SizedBox(width: 4),
-                          Text('無料'),
-                        ],
-                      ),
-                      if (!canWatchAd && !isPro)
+                      if (canWatchAd || isPro)
+                        const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.play_circle_filled, size: 16),
+                            SizedBox(width: 4),
+                            Text('無料'),
+                          ],
+                        )
+                      else ...[
+                        const Icon(
+                          Icons.timer_outlined,
+                          size: 16,
+                          color: Colors.white70,
+                        ),
+                        const SizedBox(height: 2),
                         Text(
                           formatDuration(adCooldown),
-                          style: const TextStyle(fontSize: 10),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
+                      ],
                       if (isPro)
                         const Text(
                           '(Instant)',

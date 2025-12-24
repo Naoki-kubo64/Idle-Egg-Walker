@@ -1,7 +1,7 @@
 name: egg_walker
 description: "歩数連動型の放置育成ゲーム - 卵を温めてモンスターを孵化させよう！"
 publish_to: "none"
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: ^3.7.0-79.0.dev
